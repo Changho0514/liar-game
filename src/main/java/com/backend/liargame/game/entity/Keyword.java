@@ -5,13 +5,11 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.util.List;
-
 @Entity
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Topic {
+public class Keyword {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -19,10 +17,8 @@ public class Topic {
 
     private String name;
 
-    @OneToMany(mappedBy = "topic", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Keyword> keywords;
+    @ManyToOne
+    @JoinColumn(name = "topic_id")
+    private Topic topic;
 
-    public Topic(String name) {
-        this.name = name;
-    }
 }
