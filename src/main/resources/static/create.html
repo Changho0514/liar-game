@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Room</title>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+<main>
+    <h2>라이어 게임 방 입장</h2>
+    <form id="create-room-form">
+        <input type="text" id="nickname" placeholder="이름을 입력해주세요." required>
+        <div>
+            <button type="button" onclick="location.href='index.html'">취소</button>
+            <button type="submit">입장</button>
+        </div>
+    </form>
+</main>
+<script>
+    document.getElementById('create-room-form').addEventListener('submit', function(event) {
+        event.preventDefault();
+        const nickname = document.getElementById('nickname').value;
+        location.href = `room.html?nickname=${nickname}`;
+    });
+</script>
+</body>
+</html>
