@@ -1,0 +1,83 @@
+/* 기존 스타일 유지... */
+
+.modal {
+    display: none; /* 모달 창이 처음에 보이지 않도록 설정 */
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.5); /* 배경 어둡게 */
+}
+
+.modal-content {
+    background-color: #fff; /* 모달 내용 배경 흰색 */
+    margin: 15% auto; /* 상하 마진 */
+    padding: 20px;
+    border-radius: 10px; /* 모서리 둥글게 */
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3); /* 그림자 추가 */
+    width: 80%;
+    max-width: 400px;
+    text-align: center;
+    animation: fadeIn 0.3s ease; /* 부드러운 등장 애니메이션 */
+}
+
+.modal-content p {
+    margin-bottom: 20px;
+    font-size: 1.1em; /* 글씨 크기 약간 키움 */
+}
+/* 기존 스타일 유지... */
+
+.modal {
+    display: none; /* 모달 창이 처음에 보이지 않도록 설정 */
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.5); /* 배경 어둡게 */
+}
+
+.modal-content {
+    background-color: #fff; /* 모달 내용 배경 흰색 */
+    margin: 15% auto; /* 상하 마진 */
+    padding: 20px;
+    border-radius: 10px; /* 모서리 둥글게 */
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3); /* 그림자 추가 */
+    width: 80%;
+    max-width: 400px;
+    text-align: center;
+    animation: fadeIn 0.3s ease; /* 부드러운 등장 애니메이션 */
+}
+
+.modal-content p {
+    margin-bottom: 20px;
+    font-size: 1.1em; /* 글씨 크기 약간 키움 */
+}
+
+.modal-buttons {
+    display: flex;
+    justify-content: space-around;
+}
+
+.modal-button {
+    padding: 10px 20px;
+    font-size: 1em;
+    border: none;
+    border-radius: 5px; /* 버튼 모서리 둥글게 */
+    background-color: #f0f0f0;
+    cursor: pointer;
+}
+
+.modal-button:hover {
+    background-color: #ddd; /* 호버 효과 */
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Room Details</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.4.0/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+</head>
+<body>
+<main>
+    <h2>플레이어</h2>
+    <div>
+        <span id="player-name" th:text="${nickname}"></span>
+    </div>
+    <p>아래 링크를 공유하세요!</p>
+    <p>liar-game.com/room/<span th:text="${roomId}"></span></p>
+    <p style="color: red;">링크 복사</p>
+    <div>
+        <button onclick="location.href='/'">홈으로</button>
+        <button id="start-game-btn">게임 시작</button>
+    </div>
+
+    <!-- 채팅 -->
+    <h2>채팅</h2>
+    <div id="messages"></div>
+    <form id="chat-form">
+        <input type="text" id="content" placeholder="메시지" required>
+        <button type="submit">전송</button>
+    </form>
+</main>
+
+<!-- Modal -->
+<div id="modal" class="modal">
+    <div class="modal-content">
+        <p>모든 플레이어가 입장했는지 확인해주세요.<br>1명의 플레이어로 게임을 시작하시겠습니까?</p>
+        <div class="modal-buttons">
+            <button class="modal-button" onclick="closeModal()">취소</button>
+            <button class="modal-button" onclick="startGame()">확인</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    var stompClient = null;
+    var nickname = '';
+
+    function connect() {
+        var socket = new SockJS('/gs-guide-websocket');
+        stompClient = Stomp.over(socket);
+        stompClient.connect({}, function (frame) {
+            console.log('Connected: ' + frame);
+            stompClient.subscribe('/topic/messages', function (message) {
+                showMessage(JSON.parse(message.body));
+            });
+        });
+    }
+
+    function sendMessage() {
+        const content = document.getElementById('content').value;
+        stompClient.send("/app/chat", {}, JSON.stringify({'name': nickname, 'content': content}));
+        document.getElementById('content').value = ''; // 메시지 전송 후 입력 칸 비우기
+    }
+
+    function showMessage(message) {
+        var messages = document.getElementById('messages');
+        var messageElement = document.createElement('div');
+        messageElement.appendChild(document.createTextNode(message.name + ": " + message.content));
+        messages.appendChild(messageElement);
+    }
+
+    document.getElementById('chat-form').addEventListener('submit', function (event) {
+        event.preventDefault();
+        sendMessage();
+    });
+
+    connect();
+
+    window.onload = function() {
+        const nicknameElement = document.getElementById('player-name');
+        if (nicknameElement) {
+            nickname = nicknameElement.innerText;
+        }
+        document.getElementById('modal').style.display = 'none'; // Ensure modal is hidden on load
+    }
+
+    document.getElementById('start-game-btn').addEventListener('click', function() {
+        document.getElementById('modal').style.display = 'block';
+    });
+
+    function closeModal() {
+        document.getElementById('modal').style.display = 'none';
+    }
+
+    function startGame() {
+        const uuid = 'jutsa-torev'; // 여기서 실제 UUID 생성 필요
+        location.href = `game.html?uuid=${uuid}`;
+    }
+</script>
+</body>
+</html>
