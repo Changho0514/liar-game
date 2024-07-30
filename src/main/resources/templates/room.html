@@ -5,18 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Room Details</title>
     <link rel="stylesheet" href="/css/styles.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.4.0/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.0/sockjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
 </head>
 <body>
 <main>
     <h2>플레이어</h2>
-    <div>
-        <span id="player-name" th:text="${nickname}"></span>
+    <div id="player-list">
+        <!-- 플레이어 목록이 여기에 추가됩니다. -->
     </div>
     <p>아래 링크를 공유하세요!</p>
-    <p>liar-game.com/room/<span th:text="${roomId}"></span></p>
-    <p style="color: red;">링크 복사</p>
+    <p id="room-link">liar-game.com/room/<span id="room-code" th:text="${roomCode}"></span></p>
+    <p style="color: red;" onclick="copyLink()">링크 복사</p>
     <div>
         <button onclick="location.href='/'">홈으로</button>
         <button id="start-game-btn">게임 시작</button>
@@ -43,31 +43,75 @@
 </div>
 
 <script>
-    var stompClient = null;
-    var nickname = '';
+    let stompClient = null;
+    let nickname = '';
+    let roomCode = '';
 
-    function connect() {
-        var socket = new SockJS('/gs-guide-websocket');
+    // 에러 처리 함수 추가
+    function handleError(error) {
+        console.error('Error:', error);
+        alert('An error occurred. Please try again.');
+    }
+
+    function connectWebSocket() {
+        roomCode = window.location.pathname.split('/').pop();
+        const socket = new SockJS('/ws');
         stompClient = Stomp.over(socket);
         stompClient.connect({}, function (frame) {
             console.log('Connected: ' + frame);
-            stompClient.subscribe('/topic/messages', function (message) {
+
+            // 메시지 수신 구독
+            stompClient.subscribe('/topic/room/' + roomCode, function (message) {
+                console.log('Received: ' + message.body);
                 showMessage(JSON.parse(message.body));
             });
+
+            // 플레이어 목록 수신 구독
+            stompClient.subscribe('/topic/room/' + roomCode + '/players', function (message) {
+                console.log('Players: ' + message.body);
+                updatePlayerList(JSON.parse(message.body));
+            });
+
+            // 방에 참가 메시지 전송
+            stompClient.send("/app/chat/" + roomCode + "/join", {}, JSON.stringify({ nickname: nickname }));
+        }, function(error) {
+            // WebSocket 연결 에러 처리
+            handleError(error);
         });
     }
 
     function sendMessage() {
         const content = document.getElementById('content').value;
-        stompClient.send("/app/chat", {}, JSON.stringify({'name': nickname, 'content': content}));
+        // 메시지 전송 경로 수정 및 에러 처리 추가
+        stompClient.send("/app/chat/" + roomCode, {}, JSON.stringify({ 'name': nickname, 'content': content }),
+            function(error) {
+                if (error) handleError(error);
+            }
+        );
         document.getElementById('content').value = ''; // 메시지 전송 후 입력 칸 비우기
     }
 
     function showMessage(message) {
-        var messages = document.getElementById('messages');
-        var messageElement = document.createElement('div');
+        const messages = document.getElementById('messages');
+        const messageElement = document.createElement('div');
         messageElement.appendChild(document.createTextNode(message.name + ": " + message.content));
         messages.appendChild(messageElement);
+    }
+
+    function updatePlayerList(players) {
+        const playerList = document.getElementById('player-list');
+        if (!playerList) {
+            console.error('player-list 요소를 찾을 수 없습니다.');
+            return;
+        }
+
+        playerList.innerHTML = ''; // 기존 목록을 비웁니다.
+
+        players.forEach(function(player) {
+            const playerElement = document.createElement('div');
+            playerElement.appendChild(document.createTextNode(player));
+            playerList.appendChild(playerElement);
+        });
     }
 
     document.getElementById('chat-form').addEventListener('submit', function (event) {
@@ -75,13 +119,16 @@
         sendMessage();
     });
 
-    connect();
-
     window.onload = function() {
-        const nicknameElement = document.getElementById('player-name');
-        if (nicknameElement) {
-            nickname = nicknameElement.innerText;
-        }
+        // 세션에서 닉네임 가져오기
+        fetch('/api/session/nickname')
+            .then(response => response.text())
+            .then(data => {
+                nickname = data;
+                connectWebSocket();
+            })
+            .catch(handleError);
+
         document.getElementById('modal').style.display = 'none'; // Ensure modal is hidden on load
     }
 
@@ -94,8 +141,30 @@
     }
 
     function startGame() {
-        const uuid = 'jutsa-torev'; // 여기서 실제 UUID 생성 필요
-        location.href = `game.html?uuid=${uuid}`;
+        // 게임 시작 요청을 서버로 전송
+        fetch('/api/game/start/' + roomCode, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ nickname: nickname }),
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = '/game/' + roomCode;
+                } else {
+                    alert('Failed to start the game. Please try again.');
+                }
+            })
+            .catch(handleError);
+    }
+
+    function copyLink() {
+        const link = document.getElementById('room-link').innerText;
+        navigator.clipboard.writeText(link)
+            .then(() => alert('링크가 복사되었습니다: ' + link))
+            .catch(handleError);
     }
 </script>
 </body>
