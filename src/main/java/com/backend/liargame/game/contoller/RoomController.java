@@ -1,16 +1,18 @@
 package com.backend.liargame.game.contoller;
 
 import jakarta.servlet.http.HttpSession;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.ModelAndView;
 
+import java.util.Map;
 import java.util.UUID;
 
 @Controller
+@RequestMapping("/room")
 public class RoomController {
 
     @GetMapping("/create")
@@ -18,27 +20,33 @@ public class RoomController {
         return "create";
     }
 
-    @GetMapping("/create-room")
-    public String createRoom(@RequestParam("nickname") String nickname, HttpSession session, Model model) {
-        String roomId = UUID.randomUUID().toString().replace("-", "").substring(0, 10);
-        session.setAttribute("roomId", roomId);
-        session.setAttribute("nickname", nickname);
-        model.addAttribute("roomId", roomId);
-        model.addAttribute("nickname", nickname);
-        return "room";
+    @PostMapping("/enterRoom")
+    public ResponseEntity<String> createRoom(@RequestBody Map<String, String> request, HttpSession session) {
+        String nickname = request.get("nickname");
+        // UUID 생성
+        String roomCode = UUID.randomUUID().toString().substring(0, 8);
+        session.setAttribute("nickname", nickname); // 세션에 닉네임 저장
+        // 닉네임과 방 코드를 이용해 필요한 로직 처리 (예: 방 생성, 사용자 추가 등)
+
+        // 성공적으로 처리된 경우
+        return new ResponseEntity<>(roomCode, HttpStatus.OK);
+
+        // 오류가 발생한 경우 (예: 방 생성 실패)
+        // return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
-    @GetMapping("/room")
-    public String room(HttpSession session, Model model) {
-        String roomId = (String) session.getAttribute("roomId");
+    @GetMapping("/{roomCode}")
+    public ModelAndView ownRoom(@PathVariable("roomCode") String roomCode, HttpSession session) {
+        ModelAndView mav = new ModelAndView("room");
+        mav.addObject("roomCode", roomCode);
         String nickname = (String) session.getAttribute("nickname");
+        mav.addObject("nickname", nickname);
+        return mav;
+    }
 
-        if (roomId == null || nickname == null) {
-            return "redirect:/";
-        }
-
-        model.addAttribute("roomId", roomId);
-        model.addAttribute("nickname", nickname);
-        return "room";
+    @PostMapping("/reset-session")
+    public ResponseEntity<Void> resetSession(HttpSession session) {
+        session.invalidate(); // 세션 무효화
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 }
