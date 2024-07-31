@@ -11,8 +11,15 @@
 <body>
 <main>
     <h2>플레이어</h2>
-    <div>
-        <span id="player-name" th:text="${nickname}"></span>
+    <div id="nickname-section">
+        <form id="nickname-form" onsubmit="setNickname(event)">
+            <input type="text" id="nickname" placeholder="닉네임을 입력해주세요." required>
+            <button type="submit">입장</button>
+        </form>
+    </div>
+    <div id="player-list" style="display: none;"></div> <!-- 플레이어 목록을 표시할 div 추가 -->
+    <div id="player-name-section" style="display: none;">
+        <span id="player-name"></span> <!-- 닉네임을 표시할 span -->
     </div>
     <p>아래 링크를 공유하세요!</p>
 
@@ -22,13 +29,13 @@
 
     <div>
         <button onclick="resetSessionAndGoHome()">홈으로</button>
-        <button id="start-game-btn">게임 시작</button>
+        <button id="start-game-btn" style="display: none;">게임 시작</button>
     </div>
 
     <!-- 채팅 -->
     <h2>채팅</h2>
     <div id="messages"></div>
-    <form id="chat-form">
+    <form id="chat-form" style="display: none;">
         <input type="text" id="content" placeholder="메시지" required>
         <button type="submit">전송</button>
     </form>
@@ -50,44 +57,49 @@
 
 <script>
     var stompClient = null;
-    var nickname =  ''; //
+    var nickname = '';
 
+    function setNickname(event) {
+        event.preventDefault();
+        nickname = document.getElementById('nickname').value;
+        sessionStorage.setItem('nickname', nickname); // 닉네임을 세션에 저장
 
-    function connectWebSocket() {
-        roomCode = window.location.pathname.split('/').pop();
-        const socket = new SockJS('/ws');
+        document.getElementById('nickname-section').style.display = 'none';
+        document.getElementById('player-list').style.display = 'block';
+        document.getElementById('player-name-section').style.display = 'block';
+        document.getElementById('player-name').innerText = nickname;
+        document.getElementById('start-game-btn').style.display = 'block';
+        document.getElementById('chat-form').style.display = 'block';
+
+        connect();
+    }
+
+    function connect() {
+        var socket = new SockJS('/gs-guide-websocket'); // 올바른 SockJS 엔드포인트 설정
         stompClient = Stomp.over(socket);
         stompClient.connect({}, function (frame) {
             console.log('Connected: ' + frame);
+            const roomCode = window.location.pathname.split('/').pop(); // 방 코드를 URL에서 가져옴
 
-            // 메시지 수신 구독
-            stompClient.subscribe('/topic/room/' + roomCode, function (message) {
-                console.log('Received: ' + message.body);
-                showMessage(JSON.parse(message.body));
-            });
-
-            // 플레이어 목록 수신 구독
+            // 방에 연결된 사용자 목록 수신
             stompClient.subscribe('/topic/room/' + roomCode + '/players', function (message) {
-                console.log('Players: ' + message.body);
                 updatePlayerList(JSON.parse(message.body));
             });
 
-            // 방에 참가 메시지 전송
-            stompClient.send("/app/chat/" + roomCode + "/join", {}, JSON.stringify({ nickname: nickname }));
-        }, function(error) {
-            // WebSocket 연결 에러 처리
-            handleError(error);
+            // 채팅 메시지 수신
+            stompClient.subscribe('/topic/room/' + roomCode + '/chat', function (message) {
+                showMessage(JSON.parse(message.body));
+            });
+
+            // 방에 입장 메시지 전송
+            stompClient.send("/app/room/" + roomCode + "/join", {}, JSON.stringify({ 'nickname': nickname }));
         });
     }
 
     function sendMessage() {
         const content = document.getElementById('content').value;
-        // 메시지 전송 경로 수정 및 에러 처리 추가
-        stompClient.send("/app/chat/" + roomCode, {}, JSON.stringify({ 'name': nickname, 'content': content }),
-            function(error) {
-                if (error) handleError(error);
-            }
-        );
+        const roomCode = window.location.pathname.split('/').pop();
+        stompClient.send("/app/room/" + roomCode + "/chat", {}, JSON.stringify({'name': nickname, 'content': content}));
         document.getElementById('content').value = ''; // 메시지 전송 후 입력 칸 비우기
     }
 
@@ -99,16 +111,14 @@
     }
 
     function updatePlayerList(players) {
-        const playerList = document.getElementById('player-list');
+        var playerList = document.getElementById('player-list'); // 플레이어 목록을 표시할 div
         if (!playerList) {
-            console.error('player-list 요소를 찾을 수 없습니다.');
+            console.error('player-list element not found');
             return;
         }
-
-        playerList.innerHTML = ''; // 기존 목록을 비웁니다.
-
+        playerList.innerHTML = '';
         players.forEach(function(player) {
-            const playerElement = document.createElement('div');
+            var playerElement = document.createElement('div');
             playerElement.appendChild(document.createTextNode(player));
             playerList.appendChild(playerElement);
         });
@@ -119,11 +129,32 @@
         sendMessage();
     });
 
-    window.onload = function() {
-        const nicknameElement = document.getElementById('player-name');
-        if (nicknameElement) {
-            nickname = nicknameElement.innerText; // nickname 변수를 HTML 요소에서 가져와 설정
+    window.onbeforeunload = function() {
+        // 세션에서 닉네임 제거
+        sessionStorage.removeItem('nickname');
+        const roomCode = window.location.pathname.split('/').pop();
+        // 서버에 나가기 메시지 전송
+        if (stompClient) {
+            stompClient.send("/app/room/" + roomCode + "/leave", {}, JSON.stringify({ 'nickname': nickname }));
         }
+    };
+
+    window.onload = function() {
+        const savedNickname = sessionStorage.getItem('nickname');
+        if (savedNickname) {
+            nickname = savedNickname;
+            document.getElementById('nickname-section').style.display = 'none';
+            document.getElementById('player-list').style.display = 'block';
+            document.getElementById('player-name-section').style.display = 'block';
+            document.getElementById('player-name').innerText = nickname;
+            document.getElementById('start-game-btn').style.display = 'block';
+            document.getElementById('chat-form').style.display = 'block';
+
+            connect();
+        } else {
+            document.getElementById('nickname-section').style.display = 'block';
+        }
+
         document.getElementById('modal').style.display = 'none';
     }
 
