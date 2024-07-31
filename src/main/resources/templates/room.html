@@ -12,11 +12,12 @@
 <main>
     <h2>플레이어</h2>
     <div>
-        <span id="player-name" th:text="${nickname}"></span> <!-- Thymeleaf 문법으로 변경 -->
+        <span id="player-name" th:text="${nickname}"></span>
     </div>
     <p>아래 링크를 공유하세요!</p>
-    <p>liar-game.com/room/<span th:text="${roomCode}"></span></p> <!-- Thymeleaf 문법으로 변경 -->
-    <p style="color: red;">링크 복사</p>
+
+    <p>ch-liar.store/room/<span th:text="${roomCode}"></span></p>
+    <p style="color: red; cursor: pointer;" onclick="copyLink()">링크 복사</p>
 
     <div>
         <button onclick="resetSessionAndGoHome()">홈으로</button>
@@ -119,7 +120,7 @@
         if (nicknameElement) {
             nickname = nicknameElement.innerText; // nickname 변수를 HTML 요소에서 가져와 설정
         }
-        document.getElementById('modal').style.display = 'none'; // Ensure modal is hidden on load
+        document.getElementById('modal').style.display = 'none';
     }
 
     document.getElementById('start-game-btn').addEventListener('click', function() {
@@ -150,18 +151,24 @@
             .catch(handleError);
     }
 
-    function copyLink() {
-        const link = document.getElementById('room-link').innerText;
-        navigator.clipboard.writeText(link)
-            .then(() => alert('링크가 복사되었습니다: ' + link))
-            .catch(handleError);
-    }
-
     function resetSessionAndGoHome() {
         fetch('/room/reset-session', { method: 'POST' }) // 서버에 세션 초기화 요청
             .then(() => {
                 location.href = '/'; // 홈으로 이동
             });
+    }
+
+    function copyLink() { // 링크 복사 함수 추가
+        const roomCodeElement = document.querySelector('[th\\:text="${roomCode}"]');
+        if (roomCodeElement) {
+            const roomCode = roomCodeElement.innerText;
+            const link = `ch-liar.store/room/${roomCode}`;
+            navigator.clipboard.writeText(link).then(() => {
+                alert('링크가 복사되었습니다: ' + link);
+            }).catch(err => {
+                console.error('복사 실패:', err);
+            });
+        }
     }
 
 </script>
