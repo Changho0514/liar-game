@@ -5,11 +5,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
 
 import java.util.Map;
 import java.util.UUID;
+
 
 @Controller
 @RequestMapping("/room")
@@ -48,5 +50,6 @@ public class RoomController {
     public ResponseEntity<Void> resetSession(HttpSession session) {
         session.invalidate(); // 세션 무효화
         return new ResponseEntity<>(HttpStatus.OK);
+
     }
 }
