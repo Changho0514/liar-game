@@ -16,7 +16,8 @@
     </div>
     <p>아래 링크를 공유하세요!</p>
 
-    <p>ch-liar.store/room/<span th:text="${roomCode}"></span></p>
+    <p id="room-link" th:text="'ch-liar.store/room/' + ${roomCode}"></p>
+
     <p style="color: red; cursor: pointer;" onclick="copyLink()">링크 복사</p>
 
     <div>
@@ -43,6 +44,9 @@
         </div>
     </div>
 </div>
+
+<!-- 알림 메시지 -->
+<div id="alert" class="alert" style="display:none; position:fixed; bottom:10px; right:10px; background-color:#f9edbe; padding:10px; border:1px solid #f0c36d; border-radius:5px;">링크가 복사되었습니다!</div>
 
 <script>
     var stompClient = null;
@@ -159,16 +163,24 @@
     }
 
     function copyLink() { // 링크 복사 함수 추가
-        const roomCodeElement = document.querySelector('[th\\:text="${roomCode}"]');
-        if (roomCodeElement) {
-            const roomCode = roomCodeElement.innerText;
-            const link = `ch-liar.store/room/${roomCode}`;
+        const roomLinkElement = document.getElementById('room-link');
+        if (roomLinkElement) {
+            const link = roomLinkElement.innerText;
             navigator.clipboard.writeText(link).then(() => {
-                alert('링크가 복사되었습니다: ' + link);
+                showAlert('링크가 복사되었습니다 ');
             }).catch(err => {
                 console.error('복사 실패:', err);
             });
         }
+    }
+
+    function showAlert(message) { // 알림 메시지 함수 추가
+        const alertElement = document.getElementById('alert');
+        alertElement.innerText = message;
+        alertElement.style.display = 'block';
+        setTimeout(() => {
+            alertElement.style.display = 'none';
+        }, 2000);
     }
 
 </script>
