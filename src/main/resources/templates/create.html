@@ -3,15 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>라이어 게임 방 입장</title>
+    <title>Create Room</title>
+    <link rel="stylesheet" href="/css/styles.css">
+
     <script>
         async function createRoom(event) {
             event.preventDefault();
             const nickname = document.getElementById('nickname').value;
-            console.log('입력한 닉네임:', nickname); // 닉네임 로그 출력
 
             try {
-                const response = await fetch('/api/game/create', {
+                const response = await fetch('/room/enterRoom', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -21,14 +22,9 @@
 
                 if (response.ok) {
                     const roomCode = await response.text();
-                    console.log('생성된 방 코드:', roomCode); // 방 코드 로그 출력
-
-                    // 리디렉션을 2초 지연시킵니다.
-                    setTimeout(() => {
-                        window.location.href = `/room/${roomCode}`;
-                    }, 2000);
+                    window.location.href = `/room/${roomCode}`;
                 } else {
-                    console.error('방 생성 실패');
+
                     alert('방 생성에 실패했습니다. 다시 시도해 주세요.');
                 }
             } catch (error) {
