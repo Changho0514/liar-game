@@ -3,35 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>라이어 게임 방 참가</title>
+
+    <title>라이어 게임 방 입장</title>
     <script>
-        async function joinRoom(event) {
+        function joinRoom(event) {
             event.preventDefault();
             const nickname = document.getElementById('nickname').value;
-            const roomCode = document.getElementById('roomCode').value;
+            const roomCode = window.location.pathname.split('/').pop();
             console.log('입력한 닉네임:', nickname); // 닉네임 로그 출력
-            console.log('방 코드:', roomCode); // 방 코드 로그 출력
 
-            try {
-                const response = await fetch(`/api/game/join/${roomCode}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ nickname: nickname }),
-                });
+            // 세션 저장 (필요에 따라 쿠키 등 다른 저장소 사용 가능)
+            sessionStorage.setItem('nickname', nickname);
 
-                if (response.ok) {
-                    // 방으로 리디렉션
-                    window.location.href = `/room/${roomCode}`;
-                } else {
-                    console.error('방 참가 실패');
-                    alert('방 참가에 실패했습니다. 다시 시도해 주세요.');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('오류가 발생했습니다. 다시 시도해 주세요.');
-            }
+            // 해당 방으로 리디렉션
+            window.location.href = `/room/${roomCode}`;
         }
     </script>
 </head>
@@ -39,8 +24,7 @@
 <main>
     <h2>라이어 게임 방 입장</h2>
     <form id="join-room-form" onsubmit="joinRoom(event)">
-        <input type="hidden" id="roomCode" value="${roomCode}">
-        <input type="text" name="nickname" id="nickname" placeholder="이름을 입력해주세요." required>
+        <input type="text" name="nickname" id="nickname" placeholder="닉네임을 입력해주세요." required>
         <div>
             <button type="button" onclick="location.href='/'">취소</button>
             <button type="submit">입장</button>
