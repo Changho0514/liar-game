@@ -1,5 +1,6 @@
 package com.backend.liargame.common.service;
 
+import com.backend.liargame.game.dto.GameCreateWebSocketResponseDTO;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
@@ -40,18 +41,34 @@ public class WebSocketService {
 
         // 라이어에게 메시지 전송
         String liar = players.get(liarIndex);
-        messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/gameStart/" + liar, "당신은 라이어입니다. 주제는 \"" + topic + "\"입니다.");
+        GameCreateWebSocketResponseDTO liarDto = new GameCreateWebSocketResponseDTO("당신은 라이어입니다. 주제는 \"" + topic + "\"입니다.", players);
+        messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/gameStart/" + liar, liarDto);
 
+        GameCreateWebSocketResponseDTO normalDto = new GameCreateWebSocketResponseDTO("주제는 \"" + topic + "\"이며 제시어는 \"" + keyword + "\"입니다. 라이어를 찾아주세요.", players);
         // 나머지 플레이어에게 메시지 전송
         for (int i = 0; i < players.size(); i++) {
             if (i != liarIndex) {
                 String player = players.get(i);
-                messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/gameStart/" + player, "주제는 \"" + topic + "\"이며 제시어는 \"" + keyword + "\"입니다. 라이어를 찾아주세요.");
+
+                messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/gameStart/" + player, normalDto);
             }
         }
     }
 
     public CopyOnWriteArrayList<String> getPlayers(String roomCode) {
         return roomPlayers.get(roomCode);
+    }
+
+    public void endGame(String roomCode, String mostVotedPlayer) {
+        messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/gameEnd", mostVotedPlayer);
+    }
+
+    public void updateVotes(String roomCode, Map<String, Integer> votes) {
+        messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/voteUpdate", votes);
+        System.out.println("Vote update sent: " + votes); // 로그 추가
+    }
+
+    public void convertAndSend(String topic, Map<String, Long> voteCounts) {
+        messagingTemplate.convertAndSend(topic, voteCounts);
     }
 }
