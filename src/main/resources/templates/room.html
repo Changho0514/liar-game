@@ -75,7 +75,7 @@
     }
 
     function connect() {
-        var socket = new SockJS('/gs-guide-websocket'); // 올바른 SockJS 엔드포인트 설정
+        var socket = new SockJS('/ws'); // 올바른 SockJS 엔드포인트 설정
         stompClient = Stomp.over(socket);
         stompClient.connect({}, function (frame) {
             console.log('Connected: ' + frame);
