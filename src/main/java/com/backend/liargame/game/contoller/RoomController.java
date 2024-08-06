@@ -2,6 +2,7 @@ package com.backend.liargame.game.contoller;
 
 import com.backend.liargame.chat.ChatMessage;
 import jakarta.servlet.http.HttpSession;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,10 +13,7 @@ import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 import org.springframework.web.util.HtmlUtils;
@@ -26,6 +24,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 
+@Slf4j
 @Controller
 public class RoomController {
 
@@ -37,33 +36,69 @@ public class RoomController {
     }
 
     @GetMapping("/room/create")
-    public String createRoomPage() {
+    public String createRoomPage(HttpSession session) {
+        session.setAttribute("createdRoom", true);  // 방 생성 플래그 설정
         return "create";
     }
 
-    @PostMapping("/room/enterRoom")
+    @PostMapping("/room/createRoom")
     public ResponseEntity<String> createRoom(@RequestBody Map<String, String> request, HttpSession session) {
         String nickname = request.get("nickname");
+        Boolean createdRoom = (Boolean) session.getAttribute("createdRoom");
         // UUID 생성
         String roomCode = UUID.randomUUID().toString().substring(0, 8);
         session.setAttribute("nickname", nickname); // 세션에 닉네임 저장
-        // 닉네임과 방 코드를 이용해 필요한 로직 처리 (예: 방 생성, 사용자 추가 등)
+        session.setAttribute("createdRoom", createdRoom); // 방 만든 사람
 
-        // 성공적으로 처리된 경우
         return new ResponseEntity<>(roomCode, HttpStatus.OK);
+    }
 
-        // 오류가 발생한 경우 (예: 방 생성 실패)
-        // return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+    @PostMapping("/room/joinRoom")
+    public ResponseEntity<Void> joinRoom(@RequestBody Map<String, String> request, HttpSession session) {
+        String nickname = request.get("nickname");
+        String roomCode = request.get("roomCode");
+        session.setAttribute("nickname", nickname); // 세션에 닉네임 저장
+        session.setAttribute("joinRoom", true); // 참여자 플래그 설정
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @GetMapping("/room/{roomCode}")
     public ModelAndView ownRoom(@PathVariable("roomCode") String roomCode, HttpSession session) {
-        ModelAndView mav = new ModelAndView("room");
-        mav.addObject("roomCode", roomCode);
         String nickname = (String) session.getAttribute("nickname");
-        mav.addObject("nickname", nickname);
+        Boolean joinRoom = (Boolean) session.getAttribute("joinRoom");
+        ModelAndView mav;
+        log.info("nickname : " + nickname);
+        log.info("joinRoom : " + joinRoom);
+
+        if (joinRoom == null || !joinRoom) {
+            session.removeAttribute("nickname");  // 세션에서 nickname 초기화
+        } else {
+            session.removeAttribute("joinRoom");  // 참여자 플래그 초기화
+        }
+
+        if (nickname != null && !nickname.isEmpty()) {
+            mav = new ModelAndView("room");
+            mav.addObject("roomCode", roomCode);
+            mav.addObject("nickname", nickname);
+        } else {
+            mav = new ModelAndView("join");
+            mav.addObject("roomCode", roomCode);
+        }
         return mav;
     }
+
+    @GetMapping("/room/{roomCode}/playerCount")
+    public ResponseEntity<Integer> getPlayerCount(@PathVariable String roomCode) {
+        CopyOnWriteArrayList<String> players = roomPlayers.get(roomCode);
+        log.info(roomCode + "에 연결된 사용자 -> " + players.size());
+        log.info("토픽 갯수 -> " + roomPlayers.size());
+        if (players != null) {
+            return ResponseEntity.ok(players.size());
+        } else {
+            return ResponseEntity.ok(0);
+        }
+    }
+
 
     @PostMapping("/room/reset-session")
     public ResponseEntity<Void> resetSession(HttpSession session) {
