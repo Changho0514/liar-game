@@ -13,7 +13,7 @@
             sessionStorage.setItem('nickname', nickname);
 
             try {
-                const response = await fetch('/room/enterRoom', {
+                const response = await fetch('/room/createRoom', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
