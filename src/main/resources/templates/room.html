@@ -27,7 +27,7 @@
 
     <div>
         <button onclick="resetSessionAndGoHome()">홈으로</button>
-        <button id="start-game-btn" style="display: none;">게임 시작</button>
+        <button id="start-game-btn" onclick="showPlayerCount()">게임 시작</button>
     </div>
 
     <!-- 채팅 -->
@@ -42,7 +42,7 @@
 <!-- Modal -->
 <div id="modal" class="modal">
     <div class="modal-content">
-        <p>모든 플레이어가 입장했는지 확인해주세요.<br>1명의 플레이어로 게임을 시작하시겠습니까?</p>
+        <p id="modal-text">모든 플레이어가 입장했는지 확인해주세요.<br>1명의 플레이어로 게임을 시작하시겠습니까?</p>
         <div class="modal-buttons">
             <button class="modal-button" onclick="closeModal()">취소</button>
             <button class="modal-button" onclick="startGame()">확인</button>
@@ -157,6 +157,23 @@
     document.getElementById('start-game-btn').addEventListener('click', function() {
         document.getElementById('modal').style.display = 'block';
     });
+
+    async function showPlayerCount() {
+        const roomCode = window.location.pathname.split('/').pop();
+        try {
+            const response = await fetch(`/room/${roomCode}/playerCount`);
+            if (response.ok) {
+                const count = await response.json();
+                document.getElementById('modal-text').innerHTML = `모든 플레이어가 입장했는지 확인해주세요.<br>${count}명의 플레이어로 게임을 시작하시겠습니까?`;
+                document.getElementById('modal').style.display = 'block';
+            } else {
+                alert('플레이어 수를 가져오는 데 실패했습니다.');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('오류가 발생했습니다. 다시 시도해 주세요.');
+        }
+    }
 
     function closeModal() {
         document.getElementById('modal').style.display = 'none';
