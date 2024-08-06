@@ -5,10 +5,7 @@ import com.backend.liargame.game.dto.GameCreateDTO;
 import com.backend.liargame.game.dto.GameDTO;
 import com.backend.liargame.game.dto.PlayerDTO;
 import com.backend.liargame.game.dto.VoteDTO;
-import com.backend.liargame.game.entity.Game;
-import com.backend.liargame.game.entity.Topic;
-import com.backend.liargame.game.entity.Vote;
-import com.backend.liargame.game.entity.Keyword;
+import com.backend.liargame.game.entity.*;
 import com.backend.liargame.game.repository.GameRepository;
 import com.backend.liargame.game.repository.KeywordRepository;
 import com.backend.liargame.game.repository.TopicRepository;
@@ -16,6 +13,7 @@ import com.backend.liargame.member.entity.Player;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 
@@ -27,6 +25,7 @@ public class GameService {
     private final KeywordRepository keywordRepository;
 
     private final WebSocketService webSocketService;
+    private final Map<String, GameStatus> gameStatusMap = new ConcurrentHashMap<>();
 
     public GameService(GameRepository gameRepository, TopicRepository topicRepository, KeywordRepository keywordRepository, WebSocketService webSocketService) {
         this.gameRepository = gameRepository;
@@ -35,9 +34,12 @@ public class GameService {
         this.webSocketService = webSocketService;
     }
 
-
-
     public GameCreateDTO startGame(String roomCode){
+
+        if (gameStatusMap.getOrDefault(roomCode, GameStatus.WAITING) == GameStatus.IN_PROGRESS) {
+            throw new IllegalStateException("이미 게임이 진행중입니다.");
+        }
+
         CopyOnWriteArrayList<String> players = webSocketService.getPlayers(roomCode);
 
         int liarIndex = new Random().nextInt(players.size());
@@ -52,8 +54,16 @@ public class GameService {
                 .orElse("실패한 지시어 입니다.");
 
         webSocketService.startGame(roomCode, liarIndex, topic.getName(), keyword);
-
+        gameStatusMap.put(roomCode, GameStatus.IN_PROGRESS); // 시작 상태로 변경
         return new GameCreateDTO(liarIndex, topic.getName(), keyword);
+    }
+
+    public GameStatus getGameStatus(String roomCode) {
+        return gameStatusMap.getOrDefault(roomCode, GameStatus.WAITING);
+    }
+
+    public void endGame(String roomCode) {
+        gameStatusMap.put(roomCode, GameStatus.WAITING);
     }
 
     public void recordVote(Long gameId, Long voterId, Long votedForId) {

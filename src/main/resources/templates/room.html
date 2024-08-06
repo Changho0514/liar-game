@@ -37,9 +37,9 @@
             <button type="submit">전송</button>
         </form>
     </div>
-    <div>
+    <div id="game-controls">
         <button onclick="resetSessionAndGoHome()">홈으로</button>
-        <button onclick="showPlayerCount()">게임 시작</button>
+        <button id="start-game-btn" onclick="showPlayerCount()">게임 시작</button>
     </div>
 
     <div id="modal" class="modal">
@@ -50,6 +50,11 @@
                 <button class="modal-button" onclick="confirmStartGame()">확인</button>
             </div>
         </div>
+    </div>
+    <!-- 관전 모드 메시지 -->
+    <div id="spectator-mode" style="display: none;">
+        <h2>게임 관전 중</h2>
+        <p>게임이 진행 중입니다. 관전 모드로 참여 중입니다.</p>
     </div>
 
 </main>
@@ -65,6 +70,7 @@
         } else {
             document.getElementById('room-link').innerText = window.location.href;
             connect(nickname); // 웹소켓 연결 함수 호출
+            checkGameStatus(); // 게임 상태 확인 함수 호출
         }
     }
 
@@ -182,6 +188,7 @@
             stompClient.send("/app/room/" + roomCode + "/leave", {}, JSON.stringify({ 'nickname': nickname }));
         }
     };
+
     function updatePlayerList(players) {
         var playerList = document.getElementById('player-list');
         playerList.innerHTML = '';
@@ -198,6 +205,19 @@
         messageElement.appendChild(document.createTextNode(message.name + ": " + message.content));
         messages.appendChild(messageElement);
     }
+
+    function checkGameStatus() {
+        const roomCode = window.location.pathname.split('/').pop();
+        fetch(`/api/game/status/${roomCode}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'IN_PROGRESS') {
+                    document.getElementById('start-game-btn').style.display = 'none'; // 게임 시작 버튼 숨기기
+                    document.getElementById('spectator-mode').style.display = 'block'; // 관전 모드 표시
+                }
+            });
+    }
+
 </script>
 </body>
 </html>
