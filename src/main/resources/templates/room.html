@@ -10,17 +10,13 @@
 </head>
 <body>
 <main>
+    <h2>플레이어</h2>
+    <div id="player-list"></div>
     <!-- 기존 요소들 -->
     <div id="room-section">
-        <h2>플레이어</h2>
-        <div id="player-list"></div>
         <p>아래 링크를 공유하세요!</p>
         <p id="room-link"><!--[[${roomCode}]]--></p>
         <p style="color: red; cursor: pointer;" onclick="copyLink()">링크 복사</p>
-        <div>
-            <button onclick="resetSessionAndGoHome()">홈으로</button>
-            <button onclick="showPlayerCount()">게임 시작</button>
-        </div>
     </div>
     <!-- 게임 시작 후 보여질 요소들 -->
     <div id="game-section" style="display: none;">
@@ -33,7 +29,6 @@
             <button onclick="restartGame()">다시 시작</button>
         </div>
     </div>
-
     <div id="chatting-section">
         <h2>채팅</h2>
         <div id="messages"></div>
@@ -41,6 +36,10 @@
             <input type="text" id="content" placeholder="메시지" required>
             <button type="submit">전송</button>
         </form>
+    </div>
+    <div>
+        <button onclick="resetSessionAndGoHome()">홈으로</button>
+        <button onclick="showPlayerCount()">게임 시작</button>
     </div>
 
     <div id="modal" class="modal">
