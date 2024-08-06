@@ -18,9 +18,7 @@
         </form>
     </div>
     <div id="player-list" style="display: none;"></div> <!-- 플레이어 목록을 표시할 div 추가 -->
-    <div id="player-name-section" style="display: none;">
-        <span id="player-name"></span> <!-- 닉네임을 표시할 span -->
-    </div>
+
     <p>아래 링크를 공유하세요!</p>
 
     <p id="room-link" th:text="'ch-liar.store/room/' + ${roomCode}"></p>
@@ -66,13 +64,12 @@
 
         document.getElementById('nickname-section').style.display = 'none';
         document.getElementById('player-list').style.display = 'block';
-        document.getElementById('player-name-section').style.display = 'block';
-        document.getElementById('player-name').innerText = nickname;
         document.getElementById('start-game-btn').style.display = 'block';
         document.getElementById('chat-form').style.display = 'block';
 
         connect();
     }
+
 
     function connect() {
         var socket = new SockJS('/ws'); // 올바른 SockJS 엔드포인트 설정
@@ -145,8 +142,6 @@
             nickname = savedNickname;
             document.getElementById('nickname-section').style.display = 'none';
             document.getElementById('player-list').style.display = 'block';
-            document.getElementById('player-name-section').style.display = 'block';
-            document.getElementById('player-name').innerText = nickname;
             document.getElementById('start-game-btn').style.display = 'block';
             document.getElementById('chat-form').style.display = 'block';
 
@@ -157,6 +152,7 @@
 
         document.getElementById('modal').style.display = 'none';
     }
+
 
     document.getElementById('start-game-btn').addEventListener('click', function() {
         document.getElementById('modal').style.display = 'block';
