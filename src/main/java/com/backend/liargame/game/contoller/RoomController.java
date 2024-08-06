@@ -1,6 +1,7 @@
 package com.backend.liargame.game.contoller;
 
 import com.backend.liargame.chat.ChatMessage;
+import com.backend.liargame.common.service.WebSocketService;
 import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
@@ -28,11 +29,9 @@ import java.util.concurrent.CopyOnWriteArrayList;
 @Controller
 public class RoomController {
 
-    private final SimpMessagingTemplate messagingTemplate;
-    private final Map<String, CopyOnWriteArrayList<String>> roomPlayers = new ConcurrentHashMap<>();
-
-    public RoomController(SimpMessagingTemplate messagingTemplate) {
-        this.messagingTemplate = messagingTemplate;
+    private final WebSocketService webSocketService;
+    public RoomController(WebSocketService webSocketService) {
+        this.webSocketService = webSocketService;
     }
 
     @GetMapping("/room/create")
@@ -66,17 +65,26 @@ public class RoomController {
     public ModelAndView ownRoom(@PathVariable("roomCode") String roomCode, HttpSession session) {
         String nickname = (String) session.getAttribute("nickname");
         Boolean joinRoom = (Boolean) session.getAttribute("joinRoom");
+        Boolean createdRoom = (Boolean) session.getAttribute("createdRoom");
         ModelAndView mav;
         log.info("nickname : " + nickname);
         log.info("joinRoom : " + joinRoom);
+        log.info("createdRoom : " + createdRoom);
 
+        boolean validUser = false;
+        if(createdRoom != null && createdRoom){
+            validUser = true;
+            session.removeAttribute("createdRoom");
+        }
         if (joinRoom == null || !joinRoom) {
             session.removeAttribute("nickname");  // 세션에서 nickname 초기화
+
         } else {
             session.removeAttribute("joinRoom");  // 참여자 플래그 초기화
+            validUser = true;
         }
 
-        if (nickname != null && !nickname.isEmpty()) {
+        if (validUser) {
             mav = new ModelAndView("room");
             mav.addObject("roomCode", roomCode);
             mav.addObject("nickname", nickname);
@@ -89,14 +97,9 @@ public class RoomController {
 
     @GetMapping("/room/{roomCode}/playerCount")
     public ResponseEntity<Integer> getPlayerCount(@PathVariable String roomCode) {
-        CopyOnWriteArrayList<String> players = roomPlayers.get(roomCode);
-        log.info(roomCode + "에 연결된 사용자 -> " + players.size());
-        log.info("토픽 갯수 -> " + roomPlayers.size());
-        if (players != null) {
-            return ResponseEntity.ok(players.size());
-        } else {
-            return ResponseEntity.ok(0);
-        }
+        int playerCount = webSocketService.getPlayerCount(roomCode);
+        log.info(roomCode + "에 연결된 사용자 -> " + playerCount);
+        return ResponseEntity.ok(playerCount);
     }
 
 
@@ -110,10 +113,7 @@ public class RoomController {
     @MessageMapping("/room/{roomCode}/join")
     public void joinRoom(@DestinationVariable String roomCode, @Payload Map<String, String> payload) {
         String nickname = payload.get("nickname");
-        roomPlayers.putIfAbsent(roomCode, new CopyOnWriteArrayList<>());
-        roomPlayers.get(roomCode).add(nickname);
-
-        messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/players", roomPlayers.get(roomCode));
+        webSocketService.addPlayer(roomCode, nickname);
     }
 
     @MessageMapping("/room/{roomCode}/chat")
@@ -125,11 +125,7 @@ public class RoomController {
     @MessageMapping("/room/{roomCode}/leave")
     public void leaveRoom(@DestinationVariable String roomCode, Map<String, String> payload) {
         String nickname = HtmlUtils.htmlEscape(payload.get("nickname"));
-        CopyOnWriteArrayList<String> players = roomPlayers.get(roomCode);
-        if (players != null) {
-            players.remove(nickname);
-            messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/players", players);
-        }
+        webSocketService.removePlayer(roomCode, nickname);
     }
 
     @EventListener
@@ -139,12 +135,12 @@ public class RoomController {
         String roomCode = (String) headerAccessor.getSessionAttributes().get("roomCode");
         String nickname = (String) headerAccessor.getSessionAttributes().get("nickname");
 
+        log.info("[Room Controller] - [Disconnect event Occur]");
+        log.info("roomCode : " + roomCode);
+        log.info("nickname : " + nickname);
+        log.info("sessionId : " + sessionId);
         if (roomCode != null && nickname != null) {
-            CopyOnWriteArrayList<String> players = roomPlayers.get(roomCode);
-            if (players != null) {
-                players.remove(nickname);
-                messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/players", players);
-            }
+            webSocketService.removePlayer(roomCode, nickname);
         }
     }
 }

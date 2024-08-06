@@ -1,52 +1,29 @@
 package com.backend.liargame.game.contoller;
 
+import com.backend.liargame.common.service.WebSocketService;
+import com.backend.liargame.game.dto.GameCreateDTO;
 import com.backend.liargame.game.service.GameService;
 import jakarta.servlet.http.HttpSession;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/game")
 public class GameController {
     private final GameService gameService;
+    private final WebSocketService webSocketService;
 
-    public GameController(GameService gameService) {
+    public GameController(GameService gameService, WebSocketService webSocketService) {
         this.gameService = gameService;
-    }
-
-    @PostMapping("/create")
-    public ResponseEntity<String> createGame(@RequestBody Map<String, String> payload, HttpSession session) {
-        String nickname = payload.get("nickname");
-        if (nickname == null || nickname.isEmpty()) {
-            return ResponseEntity.badRequest().body("Invalid nickname");
-        }
-        String roomCode = gameService.createGame(nickname);
-        if (roomCode != null && !roomCode.isEmpty()) {
-            session.setAttribute("nickname", nickname);
-            return ResponseEntity.ok(roomCode);
-        } else {
-            return ResponseEntity.status(500).body("Failed to create game");
-        }
-    }
-
-    @PostMapping("/join/{roomCode}")
-    public ResponseEntity<String> joinGame(@PathVariable String roomCode, @RequestBody Map<String, String> payload, HttpSession session) {
-        String nickname = payload.get("nickname");
-        if (nickname == null || nickname.isEmpty()) {
-            return ResponseEntity.badRequest().body("Invalid nickname");
-        }
-        session.setAttribute("nickname", nickname);
-        return ResponseEntity.ok("Joined room " + roomCode);
+        this.webSocketService = webSocketService;
     }
 
     @PostMapping("/start/{roomCode}")
-    public ResponseEntity<Map<String, Boolean>> startGame(@PathVariable String roomCode, @RequestBody Map<String, String> payload) {
-        String nickname = payload.get("nickname");
-//        boolean success = gameService.startGame(roomCode, nickname);
-//        return ResponseEntity.ok(Map.of("success", success));
-        return (ResponseEntity<Map<String, Boolean>>) ResponseEntity.ok();
+    public ResponseEntity<GameCreateDTO> startGame(@PathVariable String roomCode) {
+        GameCreateDTO game = gameService.startGame(roomCode);
+
+        return new ResponseEntity<>(game, HttpStatus.OK);
     }
 
     @GetMapping("/session/nickname")
