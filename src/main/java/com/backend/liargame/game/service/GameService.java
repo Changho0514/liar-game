@@ -1,22 +1,26 @@
 package com.backend.liargame.game.service;
 
 import com.backend.liargame.common.service.WebSocketService;
-import com.backend.liargame.game.dto.GameCreateDTO;
-import com.backend.liargame.game.dto.GameDTO;
-import com.backend.liargame.game.dto.PlayerDTO;
-import com.backend.liargame.game.dto.VoteDTO;
+import com.backend.liargame.game.dto.*;
 import com.backend.liargame.game.entity.*;
 import com.backend.liargame.game.repository.GameRepository;
 import com.backend.liargame.game.repository.KeywordRepository;
 import com.backend.liargame.game.repository.TopicRepository;
 import com.backend.liargame.member.entity.Player;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ScheduledFuture;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class GameService {
 
@@ -25,16 +29,26 @@ public class GameService {
     private final KeywordRepository keywordRepository;
 
     private final WebSocketService webSocketService;
+    private final SimpMessagingTemplate messagingTemplate;
     private final Map<String, GameStatus> gameStatusMap = new ConcurrentHashMap<>();
+    private final Map<String, Map<String, String>> votes = new ConcurrentHashMap<>();
+    private final Map<String, Map<String, String>> declarations = new ConcurrentHashMap<>();
+    private final Map<String, Integer> currentTurnMap = new ConcurrentHashMap<>();
+    private final Map<String, Integer> timeLeftMap = new ConcurrentHashMap<>();
+    private final Map<String, Integer> turnCounterMap = new ConcurrentHashMap<>();
+    private final ThreadPoolTaskScheduler scheduler;
+    private final Map<String, ScheduledFuture<?>> voteStartTasks = new ConcurrentHashMap<>();
 
-    public GameService(GameRepository gameRepository, TopicRepository topicRepository, KeywordRepository keywordRepository, WebSocketService webSocketService) {
+    public GameService(GameRepository gameRepository, TopicRepository topicRepository, KeywordRepository keywordRepository, WebSocketService webSocketService, SimpMessagingTemplate messagingTemplate, ThreadPoolTaskScheduler scheduler) {
         this.gameRepository = gameRepository;
         this.topicRepository = topicRepository;
         this.keywordRepository = keywordRepository;
         this.webSocketService = webSocketService;
+        this.messagingTemplate = messagingTemplate;
+        this.scheduler = scheduler;
     }
 
-    public GameCreateDTO startGame(String roomCode){
+    public GameStartResponseDTO startGame(String roomCode) {
 
         if (gameStatusMap.getOrDefault(roomCode, GameStatus.WAITING) == GameStatus.IN_PROGRESS) {
             throw new IllegalStateException("이미 게임이 진행중입니다.");
@@ -55,16 +69,24 @@ public class GameService {
 
         webSocketService.startGame(roomCode, liarIndex, topic.getName(), keyword);
         gameStatusMap.put(roomCode, GameStatus.IN_PROGRESS); // 시작 상태로 변경
-        return new GameCreateDTO(liarIndex, topic.getName(), keyword);
+
+        // 랜덤하게 첫 번째 턴 플레이어 선택
+        int initialTurn = new Random().nextInt(players.size());
+        currentTurnMap.put(roomCode, initialTurn);
+
+        timeLeftMap.put(roomCode, 15); // 초기 남은 시간 설정
+
+        // 첫 번째 턴 플레이어 알림
+        webSocketService.convertAndSend("/topic/room/" + roomCode + "/turnUpdate", players.get(initialTurn));
+
+        GameCreateDTO game = new GameCreateDTO(liarIndex, topic.getName(), keyword);
+        return new GameStartResponseDTO(game, players);
     }
 
     public GameStatus getGameStatus(String roomCode) {
         return gameStatusMap.getOrDefault(roomCode, GameStatus.WAITING);
     }
 
-    public void endGame(String roomCode) {
-        gameStatusMap.put(roomCode, GameStatus.WAITING);
-    }
 
     public void recordVote(Long gameId, Long voterId, Long votedForId) {
         Game game = gameRepository.findById(gameId).orElseThrow(IllegalArgumentException::new);
@@ -76,27 +98,127 @@ public class GameService {
         }
     }
 
-    public List<VoteDTO> getVotes(Long gameId) {
-        Game game = gameRepository.findById(gameId).orElseThrow(IllegalArgumentException::new);
-        return game.getVotes().stream().map(this::convertToDTO).toList();
+    public void submitVote(String roomCode, String voter, String votee) {
+        votes.computeIfAbsent(roomCode, k -> new ConcurrentHashMap<>()).put(voter, votee);
+        log.info("[GameService - submitVote] - 총 투표 사이즈 : " + votes.get(roomCode).size());
+    }
+
+    public void endGame(String roomCode) {
+        Map<String, String> roomVotes = votes.get(roomCode);
+        if (roomVotes != null) {
+            // Count votes
+            Map<String, Long> voteCounts = roomVotes.values().stream()
+                    .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
+
+            // Determine the player with the most votes
+            String mostVotedPlayer = Collections.max(voteCounts.entrySet(), Map.Entry.comparingByValue()).getKey();
+
+            // Notify players of the game result
+            webSocketService.endGame(roomCode, mostVotedPlayer);
+
+            gameStatusMap.put(roomCode, GameStatus.WAITING);
+        }
+    }
+    // 새로운 투표 메시지 매핑 추가
+    public void handleVote(String roomCode, VoteRequest voteRequest) {
+
+        String voter = voteRequest.name();
+        String votee = voteRequest.vote();
+
+        // 투표 결과 업데이트
+        votes.computeIfAbsent(roomCode, k -> new ConcurrentHashMap<>()).put(voter, votee);
+
+        // 실시간 투표 결과 전송
+        Map<String, String> voteResults = votes.get(roomCode);
+        log.info("Sending vote results: " + voteResults);
+        webSocketService.convertAndSend("/topic/room/" + roomCode + "/voteUpdate", voteResults);
+    }
+
+    public void handleDeclaration(String roomCode, DeclarationRequest declarationRequest) {
+
+        String nickname = declarationRequest.name();
+        String declaration = declarationRequest.declaration();
+
+        CopyOnWriteArrayList<String> players = webSocketService.getPlayers(roomCode);
+
+        int currentTurn = currentTurnMap.getOrDefault(roomCode, 0);
+
+        if (!players.get(currentTurn).equals(nickname)) {
+            throw new IllegalStateException("현재 턴이 아닙니다.");
+        }
+        declarations.computeIfAbsent(roomCode, k -> new ConcurrentHashMap<>()).put(nickname, declaration);
+
+        // 실시간 선언 전송
+        log.info("[GameService - submitDeclaration] - " + nickname + " : " + declaration);
+        webSocketService.convertAndSend("/topic/room/" + roomCode + "/declarationUpdate", declarations.get(roomCode));
+
+        // 턴 카운터 업데이트
+        int turnCounter = turnCounterMap.getOrDefault(roomCode, 0) + 1;
+        if (turnCounter >= players.size()) {
+            // 모든 플레이어가 한 번씩 턴을 마쳤다면 게임 종료 또는 다음 단계로
+            endGame(roomCode); // 게임 종료 메서드 호출 (또는 다음 단계로 이동)
+            return;
+        } else {
+            turnCounterMap.put(roomCode, turnCounter);
+        }
+
+        // 턴을 다음 플레이어로 넘김
+        currentTurn = (currentTurn + 1) % players.size();
+        currentTurnMap.put(roomCode, currentTurn);
+        timeLeftMap.put(roomCode, 15); // 남은 시간 초기화
+
+        String nextPlayer = players.get(currentTurn);
+        webSocketService.convertAndSend("/topic/room/" + roomCode + "/turnUpdate", nextPlayer);
+        messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/timer", new TimerMessage(15, nextPlayer)); // 초기화된 타이머 브로드캐스트
     }
 
 
-    private GameDTO convertToDTO(Game game) {
-        List<PlayerDTO> players = game.getPlayers().stream().map(this::convertToDTO).collect(Collectors.toList());
-        List<VoteDTO> votes = game.getVotes().stream().map(this::convertToDTO).collect(Collectors.toList());
-        return new GameDTO(game.getId(), game.getName(), players, votes);
+    /*
+       타이머 관련 로직
+     */
+    @Scheduled(fixedRate = 1000) // 1초마다 실행
+    public void broadcastTimeLeft() {
+        for (Map.Entry<String, Integer> entry : timeLeftMap.entrySet()) {
+            String roomCode = entry.getKey();
+            int timeLeft = entry.getValue();
+
+            log.info("[Scheduling] - roomCode : " + roomCode);
+            if (timeLeft > 0) {
+                CopyOnWriteArrayList<String> players = webSocketService.getPlayers(roomCode);
+                int currentTurn = currentTurnMap.getOrDefault(roomCode, 0);
+                String currentPlayer = players.get(currentTurn);
+                TimerMessage timerMessage = new TimerMessage(timeLeft, currentPlayer);
+                log.info("[Scheduling] - Broadcasting TimerMessage: " + timerMessage); // 추가된 로그
+                messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/timer", new TimerMessage(timeLeft, currentPlayer));
+                timeLeftMap.put(roomCode, timeLeft - 1);
+            } else {
+                nextPlayerTurn(roomCode);
+            }
+        }
     }
 
-    private PlayerDTO convertToDTO(Player player) {
-        return new PlayerDTO(player.getId(), player.getName());
+    private void nextPlayerTurn(String roomCode) {
+        CopyOnWriteArrayList<String> players = webSocketService.getPlayers(roomCode);
+        int currentTurn = currentTurnMap.getOrDefault(roomCode, 0);
+        currentTurn = (currentTurn + 1) % players.size();
+        currentTurnMap.put(roomCode, currentTurn);
+        timeLeftMap.put(roomCode, 15);
+
+        String nextPlayer = players.get(currentTurn);
+        webSocketService.convertAndSend("/topic/room/" + roomCode + "/turnUpdate", nextPlayer);
+
+        TimerMessage timerMessage = new TimerMessage(15, nextPlayer);
+        log.info("[nextPlayerTurn] - Broadcasting TimerMessage: " + timerMessage); // 추가된 로그
+        messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/timer", timerMessage); // 타이머 리셋 브로드캐스트
     }
 
-    private VoteDTO convertToDTO(Vote vote) {
-        PlayerDTO voter = convertToDTO(vote.getVoter());
-        PlayerDTO votedFor = convertToDTO(vote.getVotedFor());
-        return new VoteDTO(voter, votedFor);
+    private void startVoteTimer(String roomCode) {
+        // 15초 후에 투표를 시작
+        ScheduledFuture<?> voteTask = scheduler.schedule(() -> startVote(roomCode), new Date(System.currentTimeMillis() + 15000));
+        voteStartTasks.put(roomCode, voteTask);
     }
 
-
+    private void startVote(String roomCode) {
+        webSocketService.convertAndSend("/topic/room/" + roomCode + "/startVote", "투표를 시작하세요");
+    }
 }
