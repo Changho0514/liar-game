@@ -230,7 +230,7 @@
 
             stompClient.subscribe('/topic/room/' + roomCode + '/chat', function (message) {
                 showMessage(JSON.parse(message.body));
-            });
+               });
 
             // 게임 시작 토픽 구독
             stompClient.subscribe('/topic/room/' + roomCode + '/gameStart/' + nickname, function (message) {
@@ -311,7 +311,7 @@
     function confirmVote() {
         document.getElementById('vote-modal').style.display = 'none';
         if (selectedPlayer) {
-            stompClient.send("/topic/room/" + roomCode + "/voteUpdate", {}, JSON.stringify({'name': nickname, 'vote': selectedPlayer}));
+            stompClient.send("/app/room/" + roomCode + "/vote", {}, JSON.stringify({'name': nickname, 'vote': selectedPlayer}));
         }
     }
 
@@ -324,44 +324,42 @@
         const arrows = document.querySelectorAll('.arrow');
         arrows.forEach(arrow => arrow.remove());
 
-        // votes 객체에서 값 가져오기
-        const voter = votes.name;
-        const votee = votes.vote;
+        Object.entries(votes).forEach(([voter, votee]) => {
+            console.log('voter : ', voter);
+            console.log('votee : ', votee);
 
-        console.log('voter : ', voter);
-        console.log('votee : ', votee);
+            const fromBox = document.getElementById('player-box-' + voter);
+            const toBox = document.getElementById('player-box-' + votee);
 
-        const fromBox = document.getElementById('player-box-' + voter);
-        const toBox = document.getElementById('player-box-' + votee);
+            if (fromBox && toBox) {
+                console.log(`Drawing arrow from ${voter} to ${votee}`); // 로그 추가
+                const arrow = document.createElement('div');
+                arrow.className = 'arrow';
+                const fromRect = fromBox.getBoundingClientRect();
+                const toRect = toBox.getBoundingClientRect();
+                const angle = Math.atan2(toRect.top - fromRect.top, toRect.left - fromRect.left);
+                const length = Math.sqrt(Math.pow(toRect.left - fromRect.left, 2) + Math.pow(toRect.top - fromRect.top, 2));
+                console.log(`FromRect: ${JSON.stringify(fromRect)}, ToRect: ${JSON.stringify(toRect)}`); // 로그 추가
+                console.log(`Angle: ${angle}, Length: ${length}`); // 로그 추가
+                arrow.style.position = 'absolute';
+                arrow.style.transformOrigin = '0 0';
+                arrow.style.transform = `rotate(${angle}rad)`;
+                arrow.style.width = `${length}px`;
+                arrow.style.height = '2px';
+                arrow.style.backgroundColor = 'black';
+                arrow.style.left = `${fromRect.left + fromRect.width / 2}px`;
+                arrow.style.top = `${fromRect.top + fromRect.height / 2}px`;
+                document.body.appendChild(arrow); // player-boxes 대신 body에 추가하여 위치가 정확히 적용되도록 함
+                console.log(`Arrow appended to body`); // 로그 추가
 
-        if (fromBox && toBox) {
-            console.log(`Drawing arrow from ${voter} to ${votee}`); // 로그 추가
-            const arrow = document.createElement('div');
-            arrow.className = 'arrow';
-            const fromRect = fromBox.getBoundingClientRect();
-            const toRect = toBox.getBoundingClientRect();
-            const angle = Math.atan2(toRect.top - fromRect.top, toRect.left - fromRect.left);
-            const length = Math.sqrt(Math.pow(toRect.left - fromRect.left, 2) + Math.pow(toRect.top - fromRect.top, 2));
-            console.log(`FromRect: ${JSON.stringify(fromRect)}, ToRect: ${JSON.stringify(toRect)}`); // 로그 추가
-            console.log(`Angle: ${angle}, Length: ${length}`); // 로그 추가
-            arrow.style.position = 'absolute';
-            arrow.style.transformOrigin = '0 0';
-            arrow.style.transform = `rotate(${angle}rad)`;
-            arrow.style.width = `${length}px`;
-            arrow.style.height = '2px';
-            arrow.style.backgroundColor = 'black';
-            arrow.style.left = `${fromRect.left + fromRect.width / 2}px`;
-            arrow.style.top = `${fromRect.top + fromRect.height / 2}px`;
-            document.body.appendChild(arrow); // player-boxes 대신 body에 추가하여 위치가 정확히 적용되도록 함
-            console.log(`Arrow appended to body`); // 로그 추가
-
-            // 투표 결과 텍스트 추가
-            const resultElement = document.createElement('div');
-            resultElement.innerText = `${voter} -> ${votee}: 1표`;
-            voteResults.appendChild(resultElement);
-        } else {
-            console.error(`Could not find player boxes for ${voter} or ${votee}`); // 로그 추가
-        }
+                // 투표 결과 텍스트 추가
+                const resultElement = document.createElement('div');
+                resultElement.innerText = `${voter} -> ${votee}: 1표`;
+                voteResults.appendChild(resultElement);
+            } else {
+                console.error(`Could not find player boxes for ${voter} or ${votee}`); // 로그 추가
+            }
+        });
     }
 
 
