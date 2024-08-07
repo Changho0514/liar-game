@@ -1,20 +1,23 @@
 package com.backend.liargame.game.service;
 
 import com.backend.liargame.common.service.WebSocketService;
-import com.backend.liargame.game.dto.GameCreateDTO;
-import com.backend.liargame.game.dto.GameDTO;
-import com.backend.liargame.game.dto.PlayerDTO;
-import com.backend.liargame.game.dto.VoteDTO;
+import com.backend.liargame.game.dto.*;
 import com.backend.liargame.game.entity.*;
 import com.backend.liargame.game.repository.GameRepository;
 import com.backend.liargame.game.repository.KeywordRepository;
 import com.backend.liargame.game.repository.TopicRepository;
 import com.backend.liargame.member.entity.Player;
+import org.springframework.messaging.handler.annotation.DestinationVariable;
+import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -26,6 +29,7 @@ public class GameService {
 
     private final WebSocketService webSocketService;
     private final Map<String, GameStatus> gameStatusMap = new ConcurrentHashMap<>();
+    private final Map<String, Map<String, String>> votes = new ConcurrentHashMap<>();
 
     public GameService(GameRepository gameRepository, TopicRepository topicRepository, KeywordRepository keywordRepository, WebSocketService webSocketService) {
         this.gameRepository = gameRepository;
@@ -34,7 +38,7 @@ public class GameService {
         this.webSocketService = webSocketService;
     }
 
-    public GameCreateDTO startGame(String roomCode){
+    public GameStartResponseDTO startGame(String roomCode) {
 
         if (gameStatusMap.getOrDefault(roomCode, GameStatus.WAITING) == GameStatus.IN_PROGRESS) {
             throw new IllegalStateException("이미 게임이 진행중입니다.");
@@ -55,16 +59,15 @@ public class GameService {
 
         webSocketService.startGame(roomCode, liarIndex, topic.getName(), keyword);
         gameStatusMap.put(roomCode, GameStatus.IN_PROGRESS); // 시작 상태로 변경
-        return new GameCreateDTO(liarIndex, topic.getName(), keyword);
+
+        GameCreateDTO game = new GameCreateDTO(liarIndex, topic.getName(), keyword);
+        return new GameStartResponseDTO(game, players);
     }
 
     public GameStatus getGameStatus(String roomCode) {
         return gameStatusMap.getOrDefault(roomCode, GameStatus.WAITING);
     }
 
-    public void endGame(String roomCode) {
-        gameStatusMap.put(roomCode, GameStatus.WAITING);
-    }
 
     public void recordVote(Long gameId, Long voterId, Long votedForId) {
         Game game = gameRepository.findById(gameId).orElseThrow(IllegalArgumentException::new);
@@ -76,17 +79,43 @@ public class GameService {
         }
     }
 
-    public List<VoteDTO> getVotes(Long gameId) {
-        Game game = gameRepository.findById(gameId).orElseThrow(IllegalArgumentException::new);
-        return game.getVotes().stream().map(this::convertToDTO).toList();
+    public void submitVote(String roomCode, String voter, String votee) {
+        votes.computeIfAbsent(roomCode, k -> new ConcurrentHashMap<>()).put(voter, votee);
+    }
+
+    public void endGame(String roomCode) {
+        Map<String, String> roomVotes = votes.get(roomCode);
+        if (roomVotes != null) {
+            // Count votes
+            Map<String, Long> voteCounts = roomVotes.values().stream()
+                    .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
+
+            // Determine the player with the most votes
+            String mostVotedPlayer = Collections.max(voteCounts.entrySet(), Map.Entry.comparingByValue()).getKey();
+
+            // Notify players of the game result
+            webSocketService.endGame(roomCode, mostVotedPlayer);
+
+            gameStatusMap.put(roomCode, GameStatus.WAITING);
+        }
+    }
+    // 새로운 투표 메시지 매핑 추가
+    public void handleVote(String roomCode, VoteRequest voteRequest) {
+
+        String voter = voteRequest.name();
+        String votee = voteRequest.vote();
+
+        // 투표 결과 업데이트
+        votes.computeIfAbsent(roomCode, k -> new ConcurrentHashMap<>()).put(voter, votee);
+
+        // 실시간 투표 결과 전송
+        Map<String, Long> voteCounts = votes.get(roomCode).values().stream()
+                .collect(Collectors.groupingBy(e -> e, Collectors.counting()));
+
+        webSocketService.convertAndSend("/topic/room/" + roomCode + "/voteUpdate", voteCounts);
     }
 
 
-    private GameDTO convertToDTO(Game game) {
-        List<PlayerDTO> players = game.getPlayers().stream().map(this::convertToDTO).collect(Collectors.toList());
-        List<VoteDTO> votes = game.getVotes().stream().map(this::convertToDTO).collect(Collectors.toList());
-        return new GameDTO(game.getId(), game.getName(), players, votes);
-    }
 
     private PlayerDTO convertToDTO(Player player) {
         return new PlayerDTO(player.getId(), player.getName());
