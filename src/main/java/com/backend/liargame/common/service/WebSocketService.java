@@ -68,7 +68,7 @@ public class WebSocketService {
         System.out.println("Vote update sent: " + votes); // 로그 추가
     }
 
-    public void convertAndSend(String topic, Map<String, Long> voteCounts) {
-        messagingTemplate.convertAndSend(topic, voteCounts);
+    public void convertAndSend(String topic, Map<String, String> voteResults) {
+        messagingTemplate.convertAndSend(topic, voteResults);
     }
 }

@@ -7,9 +7,7 @@ import com.backend.liargame.game.repository.GameRepository;
 import com.backend.liargame.game.repository.KeywordRepository;
 import com.backend.liargame.game.repository.TopicRepository;
 import com.backend.liargame.member.entity.Player;
-import org.springframework.messaging.handler.annotation.DestinationVariable;
-import org.springframework.messaging.handler.annotation.MessageMapping;
-import org.springframework.messaging.handler.annotation.Payload;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
@@ -20,6 +18,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class GameService {
 
@@ -81,6 +80,7 @@ public class GameService {
 
     public void submitVote(String roomCode, String voter, String votee) {
         votes.computeIfAbsent(roomCode, k -> new ConcurrentHashMap<>()).put(voter, votee);
+        log.info("[GameService - submitVote] - 총 투표 사이즈 : " + votes.get(roomCode).size());
     }
 
     public void endGame(String roomCode) {
@@ -109,10 +109,9 @@ public class GameService {
         votes.computeIfAbsent(roomCode, k -> new ConcurrentHashMap<>()).put(voter, votee);
 
         // 실시간 투표 결과 전송
-        Map<String, Long> voteCounts = votes.get(roomCode).values().stream()
-                .collect(Collectors.groupingBy(e -> e, Collectors.counting()));
-
-        webSocketService.convertAndSend("/topic/room/" + roomCode + "/voteUpdate", voteCounts);
+        Map<String, String> voteResults = votes.get(roomCode);
+        log.info("Sending vote results: " + voteResults);
+        webSocketService.convertAndSend("/topic/room/" + roomCode + "/voteUpdate", voteResults);
     }
 
 
