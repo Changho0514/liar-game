@@ -1,7 +1,7 @@
 package com.backend.liargame.game.contoller;
 
 import com.backend.liargame.common.service.WebSocketService;
-import com.backend.liargame.game.dto.GameCreateDTO;
+import com.backend.liargame.game.dto.DeclarationRequest;
 import com.backend.liargame.game.dto.GameStartResponseDTO;
 import com.backend.liargame.game.dto.VoteRequest;
 import com.backend.liargame.game.entity.GameStatus;
@@ -17,8 +17,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/game")
@@ -78,6 +76,11 @@ public class GameController {
     public void handleVote(@DestinationVariable String roomCode, @Payload VoteRequest voteRequest) {
 
         gameService.handleVote(roomCode, voteRequest);
+    }
+
+    @MessageMapping("/room/{roomCode}/declaration")
+    public void handleDeclaration(@DestinationVariable String roomCode, @Payload DeclarationRequest declarationRequest) {
+        gameService.handleDeclaration(roomCode, declarationRequest);
     }
 
 

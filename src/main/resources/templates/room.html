@@ -42,9 +42,25 @@
         <div id="game-message">
             <p id="game-content"></p>
         </div>
+        <div id="turn-message">
+            <p id="current-turn-message"></p> <!-- 현재 턴 메시지를 표시할 요소 -->
+        </div>
+        <div id="declarations">
+            <h3>발언</h3>
+            <ul id="declaration-list"></ul> <!-- 선언을 고정할 요소 -->
+        </div>
         <div id="vote-section" style="display: none;">
             <h3>라이어를 찾아 투표하세요!</h3>
             <div id="vote-players"></div>
+        </div>
+
+        <!-- 게임 진행 시에만 표시되는 "선언" 입력 필드 -->
+        <div id="declaration-section" style="display: none;">
+            <h2>발언</h2>
+            <form id="declaration-form" onsubmit="submitDeclaration(event)">
+                <input type="text" id="declarationField" placeholder="발언하세요" required>
+                <button type="submit">제출</button>
+            </form>
         </div>
     </div>
     <div id="chatting-section">
@@ -74,6 +90,7 @@
         <h3>실시간 투표 결과</h3>
         <div id="vote-results"></div>
         <div id="player-boxes"></div>
+
     </div>
     <!-- 투표 확인 모달 창 -->
     <div id="vote-modal" class="modal">
@@ -246,8 +263,21 @@
                 startVote();
             });
 
+            // 턴 구독
+            stompClient.subscribe('/topic/room/' + roomCode + '/turnUpdate', (message) => {
+                const currentTurnPlayer = JSON.parse(message.body);
+                console.log(currentTurnPlayer + '턴입니다.')
+                updateTurnUI(currentTurnPlayer); // 현재 턴인 플레이어에 따라 UI 업데이트
+            });
+
             // 게임 종료 토픽 구독
             stompClient.subscribe('/topic/room/' + roomCode + '/gameEnd', handleGameEnd);
+
+            // 선언 업데이트 구독
+            stompClient.subscribe('/topic/room/' + roomCode + '/declarationUpdate', function (message) {
+                const declarations = JSON.parse(message.body);
+                updateDeclarationList(declarations);
+            });
 
             // 실시간 투표 결과 업데이트 구독
             stompClient.subscribe('/topic/room/' + roomCode + '/voteUpdate', function (message) {
@@ -385,6 +415,44 @@
 
                 console.log(`Starting vote with players: ${players}`); // 로그 추가
             });
+    }
+
+    var currentUser = sessionStorage.getItem('nickname');
+
+    function updateTurnUI(currentTurnPlayer) {
+
+        const turnMessage = document.getElementById('current-turn-message');
+        turnMessage.innerText = `${currentTurnPlayer} 님이 발언할 차례입니다`;
+
+        if (currentTurnPlayer.toString() === nickname) {
+            // 현재 턴이 자신의 턴일 때 선언 입력 필드 활성화
+            document.getElementById('declarationField').disabled = false;
+            document.getElementById('declaration-section').style.display = 'block';
+            console.log('declaration-section을 보여줍니다.');
+        } else {
+            // 현재 턴이 자신의 턴이 아닐 때 선언 입력 필드 비활성화
+            document.getElementById('declarationField').disabled = true;
+            document.getElementById('declaration-section').style.display = 'none';
+            console.log('declaration-section을 숨깁니다.');
+        }
+    }
+
+    function updateDeclarationList(declarations) {
+        const declarationList = document.getElementById('declaration-list');
+        declarationList.innerHTML = ''; // 기존 선언 초기화
+
+        for (const [player, declaration] of Object.entries(declarations)) {
+            const listItem = document.createElement('li');
+            listItem.innerText = `${player}: ${declaration}`;
+            declarationList.appendChild(listItem);
+        }
+    }
+
+    function submitDeclaration(event) {
+        event.preventDefault();
+        const declaration = document.getElementById('declarationField').value;
+        stompClient.send("/app/room/" + roomCode + "/declaration", {}, JSON.stringify({'name': currentUser, 'declaration': declaration}));
+        document.getElementById('declarationField').value = ''; // 선언 제출 후 입력 칸 비우기
     }
 
 

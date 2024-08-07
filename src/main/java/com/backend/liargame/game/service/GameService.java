@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
@@ -29,6 +30,9 @@ public class GameService {
     private final WebSocketService webSocketService;
     private final Map<String, GameStatus> gameStatusMap = new ConcurrentHashMap<>();
     private final Map<String, Map<String, String>> votes = new ConcurrentHashMap<>();
+    private final Map<String, Map<String, String>> declarations = new ConcurrentHashMap<>(); // 선언 저장
+    private final Map<String, Integer> currentTurnMap = new ConcurrentHashMap<>();
+
 
     public GameService(GameRepository gameRepository, TopicRepository topicRepository, KeywordRepository keywordRepository, WebSocketService webSocketService) {
         this.gameRepository = gameRepository;
@@ -58,6 +62,13 @@ public class GameService {
 
         webSocketService.startGame(roomCode, liarIndex, topic.getName(), keyword);
         gameStatusMap.put(roomCode, GameStatus.IN_PROGRESS); // 시작 상태로 변경
+
+        // 랜덤하게 첫 번째 턴 플레이어 선택
+        int initialTurn = new Random().nextInt(players.size());
+        currentTurnMap.put(roomCode, initialTurn);
+
+        // 첫 번째 턴 플레이어 알림
+        webSocketService.convertAndSend("/topic/room/" + roomCode + "/turnUpdate", players.get(initialTurn));
 
         GameCreateDTO game = new GameCreateDTO(liarIndex, topic.getName(), keyword);
         return new GameStartResponseDTO(game, players);
@@ -114,17 +125,27 @@ public class GameService {
         webSocketService.convertAndSend("/topic/room/" + roomCode + "/voteUpdate", voteResults);
     }
 
+    public void handleDeclaration(String roomCode, DeclarationRequest declarationRequest) {
 
+        String nickname = declarationRequest.name();
+        String declaration = declarationRequest.declaration();
 
-    private PlayerDTO convertToDTO(Player player) {
-        return new PlayerDTO(player.getId(), player.getName());
+        CopyOnWriteArrayList<String> players = webSocketService.getPlayers(roomCode);
+
+        int currentTurn = currentTurnMap.getOrDefault(roomCode, 0);
+
+        if (!players.get(currentTurn).equals(nickname)) {
+            throw new IllegalStateException("현재 턴이 아닙니다.");
+        }
+        declarations.computeIfAbsent(roomCode, k -> new ConcurrentHashMap<>()).put(nickname, declaration);
+
+        // 실시간 선언 전송
+        log.info("[GameService - submitDeclaration] - " + nickname + " : " + declaration);
+        webSocketService.convertAndSend("/topic/room/" + roomCode + "/declarationUpdate", declarations.get(roomCode));
+
+        // 턴을 다음 플레이어로 넘김
+        currentTurn = (currentTurn + 1) % players.size();
+        currentTurnMap.put(roomCode, currentTurn);
+        webSocketService.convertAndSend("/topic/room/" + roomCode + "/turnUpdate", players.get(currentTurn));
     }
-
-    private VoteDTO convertToDTO(Vote vote) {
-        PlayerDTO voter = convertToDTO(vote.getVoter());
-        PlayerDTO votedFor = convertToDTO(vote.getVotedFor());
-        return new VoteDTO(voter, votedFor);
-    }
-
-
 }

@@ -71,4 +71,8 @@ public class WebSocketService {
     public void convertAndSend(String topic, Map<String, String> voteResults) {
         messagingTemplate.convertAndSend(topic, voteResults);
     }
+
+    public void convertAndSend(String topic, String s) {
+        messagingTemplate.convertAndSend(topic, s);
+    }
 }
