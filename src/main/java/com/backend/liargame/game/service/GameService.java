@@ -8,14 +8,15 @@ import com.backend.liargame.game.repository.KeywordRepository;
 import com.backend.liargame.game.repository.TopicRepository;
 import com.backend.liargame.member.entity.Player;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.stereotype.Service;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ScheduledFuture;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -28,17 +29,23 @@ public class GameService {
     private final KeywordRepository keywordRepository;
 
     private final WebSocketService webSocketService;
+    private final SimpMessagingTemplate messagingTemplate;
     private final Map<String, GameStatus> gameStatusMap = new ConcurrentHashMap<>();
     private final Map<String, Map<String, String>> votes = new ConcurrentHashMap<>();
-    private final Map<String, Map<String, String>> declarations = new ConcurrentHashMap<>(); // 선언 저장
+    private final Map<String, Map<String, String>> declarations = new ConcurrentHashMap<>();
     private final Map<String, Integer> currentTurnMap = new ConcurrentHashMap<>();
+    private final Map<String, Integer> timeLeftMap = new ConcurrentHashMap<>();
+    private final Map<String, Integer> turnCounterMap = new ConcurrentHashMap<>();
+    private final ThreadPoolTaskScheduler scheduler;
+    private final Map<String, ScheduledFuture<?>> voteStartTasks = new ConcurrentHashMap<>();
 
-
-    public GameService(GameRepository gameRepository, TopicRepository topicRepository, KeywordRepository keywordRepository, WebSocketService webSocketService) {
+    public GameService(GameRepository gameRepository, TopicRepository topicRepository, KeywordRepository keywordRepository, WebSocketService webSocketService, SimpMessagingTemplate messagingTemplate, ThreadPoolTaskScheduler scheduler) {
         this.gameRepository = gameRepository;
         this.topicRepository = topicRepository;
         this.keywordRepository = keywordRepository;
         this.webSocketService = webSocketService;
+        this.messagingTemplate = messagingTemplate;
+        this.scheduler = scheduler;
     }
 
     public GameStartResponseDTO startGame(String roomCode) {
@@ -66,6 +73,8 @@ public class GameService {
         // 랜덤하게 첫 번째 턴 플레이어 선택
         int initialTurn = new Random().nextInt(players.size());
         currentTurnMap.put(roomCode, initialTurn);
+
+        timeLeftMap.put(roomCode, 15); // 초기 남은 시간 설정
 
         // 첫 번째 턴 플레이어 알림
         webSocketService.convertAndSend("/topic/room/" + roomCode + "/turnUpdate", players.get(initialTurn));
@@ -143,9 +152,73 @@ public class GameService {
         log.info("[GameService - submitDeclaration] - " + nickname + " : " + declaration);
         webSocketService.convertAndSend("/topic/room/" + roomCode + "/declarationUpdate", declarations.get(roomCode));
 
+        // 턴 카운터 업데이트
+        int turnCounter = turnCounterMap.getOrDefault(roomCode, 0) + 1;
+        if (turnCounter >= players.size()) {
+            // 모든 플레이어가 한 번씩 턴을 마쳤다면 게임 종료 또는 다음 단계로
+            endGame(roomCode); // 게임 종료 메서드 호출 (또는 다음 단계로 이동)
+            return;
+        } else {
+            turnCounterMap.put(roomCode, turnCounter);
+        }
+
         // 턴을 다음 플레이어로 넘김
         currentTurn = (currentTurn + 1) % players.size();
         currentTurnMap.put(roomCode, currentTurn);
-        webSocketService.convertAndSend("/topic/room/" + roomCode + "/turnUpdate", players.get(currentTurn));
+        timeLeftMap.put(roomCode, 15); // 남은 시간 초기화
+
+        String nextPlayer = players.get(currentTurn);
+        webSocketService.convertAndSend("/topic/room/" + roomCode + "/turnUpdate", nextPlayer);
+        messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/timer", new TimerMessage(15, nextPlayer)); // 초기화된 타이머 브로드캐스트
+    }
+
+
+    /*
+       타이머 관련 로직
+     */
+    @Scheduled(fixedRate = 1000) // 1초마다 실행
+    public void broadcastTimeLeft() {
+        for (Map.Entry<String, Integer> entry : timeLeftMap.entrySet()) {
+            String roomCode = entry.getKey();
+            int timeLeft = entry.getValue();
+
+            log.info("[Scheduling] - roomCode : " + roomCode);
+            if (timeLeft > 0) {
+                CopyOnWriteArrayList<String> players = webSocketService.getPlayers(roomCode);
+                int currentTurn = currentTurnMap.getOrDefault(roomCode, 0);
+                String currentPlayer = players.get(currentTurn);
+                TimerMessage timerMessage = new TimerMessage(timeLeft, currentPlayer);
+                log.info("[Scheduling] - Broadcasting TimerMessage: " + timerMessage); // 추가된 로그
+                messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/timer", new TimerMessage(timeLeft, currentPlayer));
+                timeLeftMap.put(roomCode, timeLeft - 1);
+            } else {
+                nextPlayerTurn(roomCode);
+            }
+        }
+    }
+
+    private void nextPlayerTurn(String roomCode) {
+        CopyOnWriteArrayList<String> players = webSocketService.getPlayers(roomCode);
+        int currentTurn = currentTurnMap.getOrDefault(roomCode, 0);
+        currentTurn = (currentTurn + 1) % players.size();
+        currentTurnMap.put(roomCode, currentTurn);
+        timeLeftMap.put(roomCode, 15);
+
+        String nextPlayer = players.get(currentTurn);
+        webSocketService.convertAndSend("/topic/room/" + roomCode + "/turnUpdate", nextPlayer);
+
+        TimerMessage timerMessage = new TimerMessage(15, nextPlayer);
+        log.info("[nextPlayerTurn] - Broadcasting TimerMessage: " + timerMessage); // 추가된 로그
+        messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/timer", timerMessage); // 타이머 리셋 브로드캐스트
+    }
+
+    private void startVoteTimer(String roomCode) {
+        // 15초 후에 투표를 시작
+        ScheduledFuture<?> voteTask = scheduler.schedule(() -> startVote(roomCode), new Date(System.currentTimeMillis() + 15000));
+        voteStartTasks.put(roomCode, voteTask);
+    }
+
+    private void startVote(String roomCode) {
+        webSocketService.convertAndSend("/topic/room/" + roomCode + "/startVote", "투표를 시작하세요");
     }
 }
