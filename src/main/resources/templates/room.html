@@ -56,11 +56,11 @@
         </div>
 
         <!-- 게임 진행 시에만 표시되는 "선언" 입력 필드 -->
-        <div id="declaration-section" style="display: none;">
+        <div id="declaration-section" style="display: block">
             <h2>발언</h2>
             <form id="declaration-form" onsubmit="submitDeclaration(event)">
                 <input type="text" id="declarationField" placeholder="발언하세요" required>
-                <button type="submit">제출</button>
+                <button type="submit" id="submit-button">제출</button>
             </form>
         </div>
 
@@ -453,15 +453,18 @@
         const turnMessage = document.getElementById('current-turn-message');
         turnMessage.innerText = `${currentTurnPlayer} 님이 발언할 차례입니다`;
 
+        const declarationField = document.getElementById('declarationField');
+        const submitButton = document.getElementById('submit-button'); //
+
         if (currentTurnPlayer.toString() === nickname) {
-            // 현재 턴이 자신의 턴일 때 선언 입력 필드 활성화
-            document.getElementById('declarationField').disabled = false;
-            document.getElementById('declaration-section').style.display = 'block';
+            // 현재 턴이 자신의 턴일 때 제출 입력 필드 활성화 및 제출 버튼 활성화
+            declarationField.disabled = false;
+            submitButton.disabled = false;
             console.log('declaration-section을 보여줍니다.');
         } else {
-            // 현재 턴이 자신의 턴이 아닐 때 선언 입력 필드 비활성화
-            document.getElementById('declarationField').disabled = true;
-            document.getElementById('declaration-section').style.display = 'none';
+            // 현재 턴이 자신의 턴이 아닐 때 제출 버튼만 비활성화
+            declarationField.disabled = true;
+            submitButton.disabled = true;
             console.log('declaration-section을 숨깁니다.');
         }
     }
