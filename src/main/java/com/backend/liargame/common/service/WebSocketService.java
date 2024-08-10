@@ -4,6 +4,8 @@ import com.backend.liargame.game.dto.GameCreateWebSocketResponseDTO;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -12,6 +14,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 public class WebSocketService {
     private final SimpMessagingTemplate messagingTemplate;
     private final Map<String, CopyOnWriteArrayList<String>> roomPlayers = new ConcurrentHashMap<>();
+    private final Map<String, Integer> liarPlayer = new ConcurrentHashMap<>();
+    private final Map<String, CopyOnWriteArrayList<String>> topicAndKeyword = new ConcurrentHashMap<>();
 
     public WebSocketService(SimpMessagingTemplate messagingTemplate) {
         this.messagingTemplate = messagingTemplate;
@@ -41,6 +45,11 @@ public class WebSocketService {
 
         // 라이어에게 메시지 전송
         String liar = players.get(liarIndex);
+        liarPlayer.put(roomCode, liarIndex);
+
+        topicAndKeyword.putIfAbsent(roomCode, new CopyOnWriteArrayList<>());
+        topicAndKeyword.get(roomCode).add(topic);
+        topicAndKeyword.get(roomCode).add(keyword);
         GameCreateWebSocketResponseDTO liarDto = new GameCreateWebSocketResponseDTO("당신은 라이어입니다. 주제는 \"" + topic + "\"입니다.", players);
         messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/gameStart/" + liar, liarDto);
 
@@ -74,5 +83,18 @@ public class WebSocketService {
 
     public void convertAndSend(String topic, String s) {
         messagingTemplate.convertAndSend(topic, s);
+    }
+
+    public Integer getLiarIndex(String roomCode) {
+        return liarPlayer.get(roomCode);
+    }
+
+    public List<String> getKeyword(String roomCode) {
+        CopyOnWriteArrayList<String> topicAndKeywords = topicAndKeyword.get(roomCode);
+        List<String> answer = new ArrayList<>();
+        answer.add(topicAndKeywords.get(0));
+        answer.add(topicAndKeywords.get(1));
+
+        return answer;
     }
 }
