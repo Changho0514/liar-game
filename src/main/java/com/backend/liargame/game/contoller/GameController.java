@@ -1,9 +1,7 @@
 package com.backend.liargame.game.contoller;
 
 import com.backend.liargame.common.service.WebSocketService;
-import com.backend.liargame.game.dto.DeclarationRequest;
-import com.backend.liargame.game.dto.GameStartResponseDTO;
-import com.backend.liargame.game.dto.VoteRequest;
+import com.backend.liargame.game.dto.*;
 import com.backend.liargame.game.entity.GameStatus;
 import com.backend.liargame.game.service.GameService;
 import jakarta.servlet.http.HttpSession;
@@ -49,9 +47,9 @@ public class GameController {
     }
 
     @PostMapping("/vote/{roomCode}")
-    public ResponseEntity<String> submitVote(@PathVariable String roomCode, @RequestBody Map<String, String> voteData) {
-        String voter = voteData.get("voter");
-        String votee = voteData.get("votee");
+    public ResponseEntity<String> submitVote(@PathVariable String roomCode, @RequestBody VoteRequest vote) {
+        String voter = vote.name();
+        String votee = vote.vote();
         gameService.submitVote(roomCode, voter, votee);
         return ResponseEntity.ok("Vote submitted");
     }
@@ -61,6 +59,13 @@ public class GameController {
         gameService.endGame(roomCode);
         return ResponseEntity.ok("Game ended");
     }
+
+    @PostMapping("/liarOptions/{roomCode}")
+    public ResponseEntity<LiarOptionResponseDto> liarOptions(@PathVariable String roomCode) {
+        LiarOptionResponseDto liarOptionResponseDto = gameService.liarOptions(roomCode);
+        return ResponseEntity.ok(liarOptionResponseDto);
+    }
+
 
     @GetMapping("/players/{roomCode}")
     public ResponseEntity<List<String>> getPlayers(@PathVariable String roomCode) {
@@ -72,15 +77,20 @@ public class GameController {
         }
     }
 
-    @MessageMapping("/room/{roomCode}/vote")
+    @MessageMapping("/room/{roomCode}/vote-for-liar-vote")
     public void handleVote(@DestinationVariable String roomCode, @Payload VoteRequest voteRequest) {
-
-        gameService.handleVote(roomCode, voteRequest);
+        gameService.voteForLiarVote(roomCode, voteRequest);
     }
 
     @MessageMapping("/room/{roomCode}/declaration")
     public void handleDeclaration(@DestinationVariable String roomCode, @Payload DeclarationRequest declarationRequest) {
         gameService.handleDeclaration(roomCode, declarationRequest);
+    }
+
+    @PostMapping("/liarGuess/{roomCode}")
+    public ResponseEntity<Void> liarGuess(@PathVariable String roomCode, @RequestBody LiarGuessRequestDto liarGuessRequestdto) {
+        gameService.liarGuess(roomCode, liarGuessRequestdto);
+        return ResponseEntity.ok().build();
     }
 
 
