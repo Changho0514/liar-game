@@ -193,7 +193,7 @@ public class GameService {
             // 모든 플레이어가 한 번씩 턴을 마쳤다면 게임 종료 또는 다음 단계로
             log.info("[GameService - handleDeclaration] - turnCounter: {}, players.size(): {}", turnCounter, players.size());
 
-            endGame(roomCode); // 게임 종료 메서드 호출 (또는 다음 단계로 이동)
+            startVote(roomCode); // 게임 종료 메서드 호출 (또는 다음 단계로 이동)
             return;
         } else {
             turnCounterMap.put(roomCode, turnCounter);
@@ -251,34 +251,13 @@ public class GameService {
 
 
 
-    public void endGame(String roomCode) {
+    public void startVote(String roomCode) {
         // 1. "투표를 시행하겠습니까? 60초 뒤에는 자동으로 투표에 진입합니다" 메시지와 타이머 전송
         messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/votePrompt", "투표를 시행하겠습니까? 60초 뒤에는 자동으로 투표에 진입합니다.");
         timeLeftMap.put(roomCode, 60);
         messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/timer", new TimerMessage(60, "vote"));
 
-        // 60초 후 자동 투표 진입
-//        new Timer().schedule(new TimerTask() {
-//            @Override
-//            public void run() {
-//                initiateVoting(roomCode);
-//            }
-//        }, 60000);
     }
-
-//    private void initiateVoting(String roomCode) {
-//        // 투표 로직 시작
-//        messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/startVoting", "투표를 시작합니다.");
-//
-//        // 투표 결과를 처리하는 로직
-//        // 과반수 찬성이면 5초 후 투표 시작
-//        new Timer().schedule(new TimerTask() {
-//            @Override
-//            public void run() {
-//                startVote(roomCode);
-//            }
-//        }, 5000);
-//    }
 
     private void finalizeGame(String roomCode, boolean liarWon) {
         // 게임 종료 처리 로직
@@ -317,5 +296,25 @@ public class GameService {
 
         // 결과를 모든 클라이언트에게 브로드캐스트
         messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/liar-result", result);
+    }
+
+    public void endGame(String roomCode) {
+        // 1. 타이머, 투표, 선언 등 게임 관련 데이터 초기화
+        gameStatusMap.remove(roomCode);
+        votes.remove(roomCode);
+        liarVoteConsent.remove(roomCode);
+        declarations.remove(roomCode);
+        currentTurnMap.remove(roomCode);
+        timeLeftMap.remove(roomCode);
+        turnCounterMap.remove(roomCode);
+
+        // 2. 스케줄러에서 예약된 작업 취소
+        ScheduledFuture<?> scheduledTask = voteStartTasks.remove(roomCode);
+        if (scheduledTask != null) {
+            scheduledTask.cancel(false);
+        }
+
+        // 3. 게임 종료 메시지를 클라이언트로 전송
+        messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/gameEnd", "게임이 종료되었습니다.");
     }
 }
