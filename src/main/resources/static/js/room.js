@@ -166,7 +166,7 @@ function connect(nickname) {
             console.log('Received game start message:', message.body); // 로그 추가
             const players = JSON.parse(message.body).players;
             // updatePlayerBoxes(players); // 박스 그리기
-            document.getElementById('game-content').innerText = gameMessage;
+            document.getElementById('game-content').innerHTML = gameMessage;
             document.getElementById('room-section').style.display = 'none';
             document.getElementById('game-section').style.display = 'flex';
             startVote();
@@ -593,7 +593,7 @@ function liarVoteResults(message){
     // 라이어 승리 여부에 따른 메시지 표시
     const liarResultMessage = document.createElement("p");
     if (liarWon) {
-        liarResultMessage.textContent = `라이어가 승리했습니다! 라이어는 ${liar} 였습니다!`;
+        liarResultMessage.innerHTML = `라이어가 승리했습니다! <br>라이어는 ${liar} 였습니다!`;
         voteResult.appendChild(liarResultMessage);
     } else {
         liarResultMessage.textContent = "라이어 검거 완료!";
@@ -687,9 +687,11 @@ function LiarLastGuess(message) {
     const resultMessage = document.createElement("p");
 
     if (resultData.correct) {
-        resultMessage.textContent = "라이어가 제시어를 맞추는데 성공했습니다!";
+        resultMessage.innerHTML = `라이어가 제시어를 맞추지 못했습니다! <br> 라이어가 선택한 정답은 ${resultData.selectedOption}입니다. <br> 정답은 ${resultData.correctAnswer} 였습니다.`;
+
     } else {
-        resultMessage.textContent = `라이어가 제시어를 맞추지 못했습니다! 라이어가 선택한 정답은 ${resultData.selectedOption}입니다. 정답은 ${resultData.correctAnswer} 였습니다.`;
+        resultMessage.innerHTML = `라이어가 제시어를 맞추지 못했습니다! <br> 라이어가 선택한 정답은 ${resultData.selectedOption}입니다. <br> 정답은 ${resultData.correctAnswer} 였습니다.`;
+
     }
 
     const voteResult = document.getElementById("vote-results");
