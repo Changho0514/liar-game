@@ -8,10 +8,15 @@ body {
 header {
     background-color: #4A90E2;
     color: white;
-    padding: 15px;
+    padding: 5px 15px;
     text-align: center;
     font-size: 1.5rem;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+header h1{
+    margin: 10px 0;
+    font-size: 48px;
 }
 
 main {
@@ -36,10 +41,10 @@ h2 {
 #player-list {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 5px;
     justify-content: center; /* 플레이어 목록을 왼쪽 정렬 */
-    padding: 20px;
-    border-radius: 8px;
+    padding: 5px;
+    border-radius: 5px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
@@ -272,21 +277,100 @@ button:hover {
 }
 
 #game-content {
-    font-size: 1.5em; /* 글자 크기를 키웁니다 */
+    font-size: 2rem; /* 기본 메시지 폰트 크기 설정 */
+    white-space: pre-line; /* 줄바꿈을 허용하도록 설정 */
     text-align: center; /* 텍스트를 가운데 정렬 */
-    margin-bottom: 20px; /* 아래쪽에 여백 추가 */
-    padding: 20px;
+    margin-bottom: 10px; /* 아래쪽에 여백 추가 */
+    padding: 10px;
 }
 
+#current-turn-message {
+    font-size: 1.5rem; /* 발언할 차례 메시지 폰트 크기 설정 */
+    margin-top: 10px; /* 위쪽에 약간의 여백 추가 */
+    padding: 10px;
+    text-align: center;
+}
+
+
 #clock-section {
-    background-color: #e0e0e0; /* 시계 배경색 */
+    position: fixed;
+    top: 50%; /* 화면 중앙에 배치 */
+    right: 20px; /* 페이지의 오른쪽 가장자리에서 20px 떨어진 위치 */
+    transform: translateY(-50%); /* 수직 중앙 정렬 */
+    background-color: #ffffff;
     padding: 20px;
-    border-radius: 10px; /* 모서리를 둥글게 */
-    text-align: center; /* 텍스트를 가운데 정렬 */
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* 그림자 효과 */
+    border-radius: 10px;
+    text-align: center;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    max-width: 250px; /* 최대 너비를 300px로 제한 */
+    word-wrap: break-word; /* 텍스트가 넘칠 경우 줄바꿈 */
+}
+
+#vote-results-section{
+    position: fixed;
+    top: 50%; /* 화면 중앙에 배치 */
+    left: 30px; /* 페이지의 오른쪽 가장자리에서 20px 떨어진 위치 */
+    transform: translateY(-50%); /* 수직 중앙 정렬 */
+    background-color: #ffffff;
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    max-width: 250px; /* 최대 너비를 300px로 제한 */
+    word-wrap: break-word; /* 텍스트가 넘칠 경우 줄바꿈 */
 }
 
 #turn-timer {
-    font-size: 2em; /* 시계 글자 크기를 키움 */
-    color: #333; /* 시계 글자 색상 */
+    font-size: 2em;
+    color: #333;
+    margin-bottom: 10px; /* 아래에 여백 추가 */
+}
+
+#game-section {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-start; /* 상단에 배치 */
+}
+
+#game-content-section {
+    width: 50%; /* 왼쪽 반을 차지 */
+}
+
+#declaration-section {
+    width: 50%; /* 오른쪽 반을 차지 */
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start; /* 상단에 배치 */
+}
+
+#declaration-form {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+#declarationField {
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+#submit-button {
+    align-self: flex-end; /* 제출 버튼을 오른쪽에 배치 */
+}
+
+#vote-prompt-message {
+    font-size: 1rem; /* 투표 프롬프트 메시지 크기 조정 */
+    margin-bottom: 15px;
+    line-height: 1.5; /* 줄 간격을 넉넉하게 조정 */
+}
+
+#vote-prompt-buttons {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 10px;
+}
+
+#vote-for-liar-vote-result {
+    font-size: 0.9rem; /* 동의 인원 텍스트 크기 조정 */
 }

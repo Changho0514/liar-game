@@ -14,6 +14,26 @@
             <!-- 여기에 동적으로 플레이어 박스가 추가됩니다 -->
         </div>
     </header>
+    <div id="clock-section" style="padding: 20px;">
+        <h2>남은 시간</h2>
+        <div id="turn-timer"></div>
+        <!-- 투표 프롬프트 -->
+        <div id="vote-prompt" style="display: none;">
+            <p id="vote-prompt-message"></p>
+            <div id="vote-prompt-buttons">
+                <button onclick="submitVote('yes')">예</button>
+                <button onclick="submitVote('no')">아니오</button>
+            </div>
+            <div id="vote-for-liar-vote-result">0명 동의</div>
+        </div>
+
+    </div>
+
+    <!-- 투표 결과 섹션 -->
+    <div id="vote-results-section" style="display: none;">
+        <h1>실시간 투표 결과</h1>
+        <div id="vote-results">투표중...</div>
+    </div>
 
     <main>
 
@@ -35,16 +55,14 @@
 
         <!-- 게임 시작 후 보여질 요소들 -->
         <div id="game-section" style="display: none; ; justify-content: space-between; align-items: center;">
-            <h2>게임 화면</h2>
-            <div id="game-message">
-                <p id="game-content"></p>
-            </div>
-            <div id="clock-section" style="padding: 20px;">
-                <h2>남은 시간</h2>
-                <div id="turn-timer"></div>
-            </div>
-            <div id="turn-message">
-                <p id="current-turn-message"></p>
+            <div id="game-content-section" style="display: flex; flex-direction: column; justify-content: space-between;">
+                <div id="game-message">
+                    <p id="game-content"></p>
+                </div>
+
+                <div id="turn-message">
+                    <p id="current-turn-message"></p>
+                </div>
             </div>
 <!--            <div id="vote-section" style="display: none;">-->
 <!--                <h3>라이어를 찾아 투표하세요!</h3>-->
@@ -81,25 +99,9 @@
             </div>
         </div>
 
-        <!-- 투표 결과 섹션 -->
-        <div id="vote-results-section" style="display: none;">
-            <h3>실시간 투표 결과</h3>
-            <div id="vote-results">투표중...</div>
-        </div>
-
         <div id="in-game-controls" style="display: none;">
             <button onclick="resetSessionAndGoHome()">홈으로</button>
             <button id="in-start-game-btn" onclick="restartGame()">다시하기</button>
-        </div>
-
-        <!-- 투표 프롬프트 -->
-        <div id="vote-prompt" style="display: none;">
-            <p id="vote-prompt-message"></p>
-            <div id="vote-prompt-buttons">
-                <button onclick="submitVote('yes')">예</button>
-                <button onclick="submitVote('no')">아니오</button>
-                <div id="vote-for-liar-vote-result">0명 동의</div>
-            </div>
         </div>
 
         <!-- 투표 확인 모달 창 -->
