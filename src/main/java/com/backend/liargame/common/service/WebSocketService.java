@@ -50,10 +50,10 @@ public class WebSocketService {
         topicAndKeyword.putIfAbsent(roomCode, new CopyOnWriteArrayList<>());
         topicAndKeyword.get(roomCode).add(topic);
         topicAndKeyword.get(roomCode).add(keyword);
-        GameCreateWebSocketResponseDTO liarDto = new GameCreateWebSocketResponseDTO("당신은 라이어입니다. 주제는 \"" + topic + "\"입니다.", players);
+        GameCreateWebSocketResponseDTO liarDto = new GameCreateWebSocketResponseDTO("당신은 라이어입니다. <br>주제는 \"" + topic + "\"입니다.", players);
         messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/gameStart/" + liar, liarDto);
 
-        GameCreateWebSocketResponseDTO normalDto = new GameCreateWebSocketResponseDTO("주제는 \"" + topic + "\"이며 제시어는 \"" + keyword + "\"입니다. 라이어를 찾아주세요.", players);
+        GameCreateWebSocketResponseDTO normalDto = new GameCreateWebSocketResponseDTO("주제는 \"" + topic + "\"이며 <br>제시어는 \"" + keyword + "\"입니다. <br>라이어를 찾아주세요.", players);
         // 나머지 플레이어에게 메시지 전송
         for (int i = 0; i < players.size(); i++) {
             if (i != liarIndex) {
