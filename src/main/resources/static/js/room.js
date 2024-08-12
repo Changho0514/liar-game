@@ -59,7 +59,7 @@ async function showPlayerCount() {
         const response = await fetch(`/room/${roomCode}/playerCount`);
         if (response.ok) {
             const count = await response.json();
-            document.getElementById('modal-text').innerHTML = `모든 플레이어가 입장했는지 확인해주세요.<br>${count}명의 플레이어로 게임을 시작하시겠습니까?`;
+            document.getElementById('modal-text').innerHTML = `모든 플레이어가 입장했는지<br> 확인해주세요.<br>${count}명의 플레이어로 <br>게임을 시작하시겠습니까?`;
             document.getElementById('modal').style.display = 'block';
 
         } else {
@@ -139,9 +139,9 @@ async function startGame() {
 
 function sendMessage(event) {
     event.preventDefault();
-    const content = document.getElementById('content').value;
+    const content = document.getElementById('chatField').value;
     stompClient.send("/app/room/" + roomCode + "/chat", {}, JSON.stringify({'name': nickname, 'content': content}));
-    document.getElementById('content').value = ''; // 메시지 전송 후 입력 칸 비우기
+    document.getElementById('chatField').value = ''; // 메시지 전송 후 입력 칸 비우기
 }
 
 function connect(nickname) {
@@ -168,7 +168,12 @@ function connect(nickname) {
             // updatePlayerBoxes(players); // 박스 그리기
             document.getElementById('game-content').innerHTML = gameMessage;
             document.getElementById('room-section').style.display = 'none';
-            document.getElementById('game-section').style.display = 'flex';
+
+            // 'hidden' 클래스를 제거하고 'active' 클래스를 추가
+            const gameSection = document.getElementById('game-section');
+            gameSection.classList.remove('hidden');
+            gameSection.classList.add('active');
+            
             startVote();
         });
 
@@ -514,8 +519,8 @@ function submitVote(choice) {
 
 // 라이어 투표 여부 메시지 표시 함수
 function showVotePrompt() {
-    const votePromptMessage = "투표를 시행하겠습니까? 60초 뒤에는 자동으로 투표에 진입합니다.";
-    document.getElementById('vote-prompt-message').innerText = votePromptMessage;
+    const votePromptMessage = "투표를 시행하겠습니까? <br>60초 뒤에는 자동으로 투표에 진입합니다.";
+    document.getElementById('vote-prompt-message').innerHTML = votePromptMessage;
     document.getElementById('vote-prompt').style.display = 'block';
 
     // 60초 후 자동으로 투표 모달을 표시

@@ -26,6 +26,10 @@
             </div>
             <div id="vote-for-liar-vote-result">0명 동의</div>
         </div>
+        <div id="in-game-controls" style="display: none;">
+            <button onclick="resetSessionAndGoHome()">홈으로</button>
+            <button id="in-start-game-btn" onclick="restartGame()">다시하기</button>
+        </div>
 
     </div>
 
@@ -53,56 +57,49 @@
             <!-- 여기에는 알림 메시지가 표시됩니다 -->
         </div>
 
-        <!-- 게임 시작 후 보여질 요소들 -->
-        <div id="game-section" style="display: none; ; justify-content: space-between; align-items: center;">
-            <div id="game-content-section" style="display: flex; flex-direction: column; justify-content: space-between;">
-                <div id="game-message">
+        <div id="game-section" class="hidden">
+            <div id="top-left-section">
+                <div id="game-content-section">
                     <p id="game-content"></p>
-                </div>
-
-                <div id="turn-message">
                     <p id="current-turn-message"></p>
                 </div>
             </div>
-<!--            <div id="vote-section" style="display: none;">-->
-<!--                <h3>라이어를 찾아 투표하세요!</h3>-->
-<!--                <div id="vote-players"></div>-->
-<!--            </div>-->
 
-            <div id="declaration-section" style="display: block">
-                <h2>발언</h2>
-                <ul id="declaration-list"></ul>
-                <form id="declaration-form" onsubmit="submitDeclaration(event)">
-                    <input type="text" id="declarationField" placeholder="발언하세요" required>
-                    <button type="submit" id="submit-button">제출</button>
-                </form>
+            <div id="bottom-left-section">
+                <div id="declaration-section">
+                    <h2>발언</h2>
+                    <ul id="declaration-list"></ul>
+                    <form id="declaration-form" onsubmit="submitDeclaration(event)">
+                        <input type="text" id="declarationField" placeholder="발언하세요" required>
+                        <button type="submit" id="submit-button">제출</button>
+                    </form>
+                </div>
+            </div>
+
+            <div id="right-section">
+                <div id="chatting-section">
+                    <h2>채팅</h2>
+                    <div id="messages"></div>
+                    <form id="chat-form" onsubmit="sendMessage(event)">
+                        <input type="text" id="chatField" placeholder="메시지" required>
+                        <button type="submit">전송</button>
+                    </form>
+                </div>
             </div>
         </div>
 
-        <div id="chatting-section">
-            <h2>채팅</h2>
-            <div id="messages"></div>
-            <form id="chat-form" onsubmit="sendMessage(event)">
-                <input type="text" id="content" placeholder="메시지" required>
-                <button type="submit">전송</button>
-            </form>
-        </div>
 
         <!-- 모달 -->
         <div id="modal" class="modal">
             <div class="modal-content">
                 <p id="modal-text">모든 플레이어가 입장했는지 확인해주세요.<br>1명의 플레이어로 게임을 시작하시겠습니까?</p>
                 <div class="modal-buttons">
-                    <button class="modal-button" onclick="closeModal()">취소</button>
                     <button class="modal-button" onclick="confirmStartGame()">확인</button>
+                    <button class="modal-button" onclick="closeModal(document.getElementById('modal'))">취소</button>
                 </div>
             </div>
         </div>
 
-        <div id="in-game-controls" style="display: none;">
-            <button onclick="resetSessionAndGoHome()">홈으로</button>
-            <button id="in-start-game-btn" onclick="restartGame()">다시하기</button>
-        </div>
 
         <!-- 투표 확인 모달 창 -->
         <div id="vote-modal" class="modal" style="display: none;">
