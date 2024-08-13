@@ -47,7 +47,7 @@ public class WebSocketService {
         String liar = players.get(liarIndex);
         liarPlayer.put(roomCode, liarIndex);
 
-        topicAndKeyword.putIfAbsent(roomCode, new CopyOnWriteArrayList<>());
+        topicAndKeyword.put(roomCode, new CopyOnWriteArrayList<>());
         topicAndKeyword.get(roomCode).add(topic);
         topicAndKeyword.get(roomCode).add(keyword);
         GameCreateWebSocketResponseDTO liarDto = new GameCreateWebSocketResponseDTO("당신은 라이어입니다. <br>주제는 \"" + topic + "\"입니다.", players);
