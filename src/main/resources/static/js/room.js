@@ -106,6 +106,8 @@ async function startGame() {
             gameSection.classList.remove('hidden');
             gameSection.classList.add('active');
 
+            document.getElementById('clock-section').style.display = 'block';
+
             // 클래스 리스트를 배열로 변환하여 로그로 출력
             console.log(Array.from(gameSection.classList));
         } else {
