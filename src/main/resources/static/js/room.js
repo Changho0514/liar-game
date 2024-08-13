@@ -585,30 +585,30 @@ function liarVoteResults(message){
     // 각 플레이어의 투표 결과를 표시
     Object.keys(votes).forEach(player => {
         const resultItem = document.createElement("p");
-        resultItem.textContent = `${player}: ${votes[player]} 표`;
+        resultItem.innerHTML = `<strong>${player}</strong>: <span style="color: red;">${votes[player]} 표</span>`;
         voteResult.appendChild(resultItem);
     });
 
     // 최다 득표자 표시
     const mostVotedMessage = document.createElement("p");
     if (mostVotedPlayers.length > 1) {
-        mostVotedMessage.textContent = `최다 득표자는 ${mostVotedPlayers.join(", ")} 입니다.`;
+        mostVotedMessage.innerHTML = `최다 득표자는 <strong>${mostVotedPlayers.join(", ")}</strong> 입니다.`;
     } else {
-        mostVotedMessage.textContent = `최다 득표자는 ${mostVotedPlayers[0]} 입니다.`;
+        mostVotedMessage.innerHTML = `최다 득표자는 <strong>${mostVotedPlayers[0]}</strong> 입니다.`;
     }
     voteResult.appendChild(mostVotedMessage);
 
     // 라이어 승리 여부에 따른 메시지 표시
     const liarResultMessage = document.createElement("p");
     if (liarWon) {
-        liarResultMessage.innerHTML = `라이어가 승리했습니다! <br>라이어는 ${liar} 였습니다!`;
+        liarResultMessage.innerHTML = `<span style="color: red;">라이어가 승리했습니다!</span> <br> 라이어는 <strong>${liar}</strong> 였습니다!`;
         voteResult.appendChild(liarResultMessage);
     } else {
-        liarResultMessage.textContent = "라이어 검거 완료!";
+        liarResultMessage.innerHTML = `<strong>라이어 검거 완료!</strong>`;
         voteResult.appendChild(liarResultMessage);
 
         const secondChanceMessage = document.createElement("p");
-        secondChanceMessage.textContent = "라이어에게 한번 더 기회가 주어집니다.";
+        secondChanceMessage.innerHTML = `<span style="color: red;">라이어에게 한번 더 기회가 주어집니다.</span>`;
         voteResult.appendChild(secondChanceMessage);
 
 
@@ -692,9 +692,9 @@ function LiarLastGuess(message) {
     const resultMessage = document.createElement("p");
 
     if (resultData.correct) {
-        resultMessage.innerHTML = `라이어가 제시어를 맞추지 못했습니다! <br> 라이어가 선택한 정답은 ${resultData.selectedOption}입니다. <br> 정답은 ${resultData.correctAnswer} 였습니다.`;
+        resultMessage.innerHTML = `<span style="color: red;">라이어가 제시어를 맞췄습니다. </span> <br> <strong>라이어가 승리했습니다.</strong>`;
     } else {
-        resultMessage.innerHTML = `라이어가 제시어를 맞추지 못했습니다! <br> 라이어가 선택한 정답은 ${resultData.selectedOption}입니다. <br> 정답은 ${resultData.correctAnswer} 였습니다.`;
+        resultMessage.innerHTML = `<span style="color: red;">라이어가 제시어를 맞추지 못했습니다!</span> <br> 라이어가 선택한 정답은 <strong>${resultData.selectedOption}</strong>입니다. <br> 정답은 <strong>${resultData.correctAnswer}</strong> 였습니다.`;
     }
 
     const voteResult = document.getElementById("vote-results");
