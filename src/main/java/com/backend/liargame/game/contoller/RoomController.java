@@ -2,6 +2,8 @@ package com.backend.liargame.game.contoller;
 
 import com.backend.liargame.chat.ChatMessage;
 import com.backend.liargame.common.service.WebSocketService;
+import com.backend.liargame.game.dto.NicknameRequest;
+import com.backend.liargame.game.dto.VoteRequest;
 import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
@@ -23,6 +25,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.Collectors;
 
 
 @Slf4j
@@ -110,6 +113,12 @@ public class RoomController {
 
     }
 
+    @PostMapping("/room/checkNickname")
+    public ResponseEntity<Boolean> checkNickname(@RequestBody NicknameRequest nicknameRequest) {
+        boolean isNicknameTaken = webSocketService.isNicknameTaken(nicknameRequest.roomCode(), nicknameRequest.nickname());
+        return ResponseEntity.ok(isNicknameTaken);
+    }
+
     @MessageMapping("/room/{roomCode}/join")
     public void joinRoom(@DestinationVariable String roomCode, @Payload Map<String, String> payload) {
         String nickname = payload.get("nickname");
@@ -127,6 +136,7 @@ public class RoomController {
         String nickname = HtmlUtils.htmlEscape(payload.get("nickname"));
         webSocketService.removePlayer(roomCode, nickname);
     }
+
 
     @EventListener
     public void handleWebSocketDisconnectListener(SessionDisconnectEvent event) {
