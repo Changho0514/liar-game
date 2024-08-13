@@ -715,6 +715,8 @@ function handleGameEnd(message) {
 
     // 2. UI 상태 초기화
     document.getElementById('vote-results').innerHTML = ''; // 투표 결과 초기화
+    document.getElementById('vote-for-liar-vote-result').innerHTML = '0명 동의'; // 투표 결과 초기화
+
     // document.getElementById('player-boxes').innerHTML = ''; // 플레이어 박스 초기화
     document.getElementById('declaration-list').innerHTML = ''; // 선언 리스트 초기화
     document.getElementById('turn-timer').innerText = ''; // 타이머 초기화
