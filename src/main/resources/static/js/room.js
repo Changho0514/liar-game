@@ -557,16 +557,27 @@ function showLiarGuessPrompt() {
 
 function updateDeclarationList(declarations) {
     const declarationList = document.getElementById('declaration-list');
-    declarationList.innerHTML = ''; // 기존 선언 초기화
+
+    // 이미 추가된 플레이어들의 선언을 추적하기 위해 Set을 사용
+    const existingPlayers = new Set();
+
+    // 현재 리스트에 존재하는 플레이어들의 선언을 추적
+    declarationList.querySelectorAll('.fancy-declaration').forEach(item => {
+        const playerName = item.querySelector('.player-name').innerText;
+        existingPlayers.add(playerName);
+    });
 
     for (const [player, declaration] of Object.entries(declarations)) {
-        const listItem = document.createElement('li');
-        listItem.classList.add('fancy-declaration'); // 클래스 추가
-        listItem.innerHTML = `
+        if (!existingPlayers.has(player)) {
+
+            const listItem = document.createElement('li');
+            listItem.classList.add('fancy-declaration'); // 클래스 추가
+            listItem.innerHTML = `
             <span class="player-name">${player}</span>
             <p class="declaration-text">${declaration}</p>
         `;
-        declarationList.appendChild(listItem);
+            declarationList.prepend(listItem);
+        }
     }
 }
 
