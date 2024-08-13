@@ -219,11 +219,18 @@ public class GameService {
             String roomCode = entry.getKey();
             int timeLeft = entry.getValue();
 
+            CopyOnWriteArrayList<String> players = webSocketService.getPlayers(roomCode);
+
+            if (players.isEmpty()) {
+                // 방에 플레이어가 없으면 작업을 중지
+                log.warn("No players left in room: " + roomCode);
+                timeLeftMap.remove(roomCode);  // 더 이상 시간을 카운트하지 않도록 함
+                currentTurnMap.remove(roomCode);  // currentTurn 정보도 삭제
+                continue;  // 다음 방으로 넘어감
+            }
 //            log.info("[Scheduling] - roomCode : " + roomCode);
             if (timeLeft > 0) {
-                CopyOnWriteArrayList<String> players = webSocketService.getPlayers(roomCode);
                 int currentTurn = currentTurnMap.getOrDefault(roomCode, 0);
-
                 // 플레이어가 남아 있는지, currentTurn 이 유효한지 확인
                 if (!players.isEmpty() && currentTurn < players.size()) {
                     String currentPlayer = players.get(currentTurn);
