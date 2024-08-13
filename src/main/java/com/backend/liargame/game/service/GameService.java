@@ -223,11 +223,18 @@ public class GameService {
             if (timeLeft > 0) {
                 CopyOnWriteArrayList<String> players = webSocketService.getPlayers(roomCode);
                 int currentTurn = currentTurnMap.getOrDefault(roomCode, 0);
-                String currentPlayer = players.get(currentTurn);
-                TimerMessage timerMessage = new TimerMessage(timeLeft, currentPlayer);
-//                log.info("[Scheduling] - Broadcasting TimerMessage: " + timerMessage); // 추가된 로그
-                messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/timer", new TimerMessage(timeLeft, currentPlayer));
-                timeLeftMap.put(roomCode, timeLeft - 1);
+
+                // 플레이어가 남아 있는지, currentTurn 이 유효한지 확인
+                if (!players.isEmpty() && currentTurn < players.size()) {
+                    String currentPlayer = players.get(currentTurn);
+                    TimerMessage timerMessage = new TimerMessage(timeLeft, currentPlayer);
+//                  log.info("[Scheduling] - Broadcasting TimerMessage: " + timerMessage); // 추가된 로그
+                    messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/timer", new TimerMessage(timeLeft, currentPlayer));
+                    timeLeftMap.put(roomCode, timeLeft - 1);
+                }
+                else {
+                    nextPlayerTurn(roomCode);
+                }
             } else {
                 nextPlayerTurn(roomCode);
             }
@@ -236,6 +243,13 @@ public class GameService {
 
     private void nextPlayerTurn(String roomCode) {
         CopyOnWriteArrayList<String> players = webSocketService.getPlayers(roomCode);
+
+        // 플레이어 리스트가 비어 있는지 확인
+        if (players.isEmpty()) {
+            log.warn("No players left in room: " + roomCode);
+            return; // 플레이어가 없으면 더 이상 진행하지 않음
+        }
+
         int currentTurn = currentTurnMap.getOrDefault(roomCode, 0);
         currentTurn = (currentTurn + 1) % players.size();
         currentTurnMap.put(roomCode, currentTurn);
