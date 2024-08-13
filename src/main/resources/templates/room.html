@@ -14,7 +14,7 @@
             <!-- 여기에 동적으로 플레이어 박스가 추가됩니다 -->
         </div>
     </header>
-    <div id="clock-section" style="padding: 20px;">
+    <div id="clock-section" style="padding: 20px; display: none">
         <h2>남은 시간</h2>
         <div id="turn-timer"></div>
         <!-- 투표 프롬프트 -->
@@ -28,11 +28,18 @@
         </div>
         <div id="in-game-controls" style="display: none;">
             <button onclick="resetSessionAndGoHome()">홈으로</button>
-            <button id="in-start-game-btn" onclick="restartGame()">다시하기</button>
+            <button onclick="restartGame()">다시하기</button>
         </div>
 
     </div>
-
+    <div id="declaration-section">
+        <h2>발언</h2>
+        <ul id="declaration-list"></ul>
+        <form id="declaration-form" onsubmit="submitDeclaration(event)">
+            <input type="text" id="declarationField" placeholder="발언하세요" required>
+            <button type="submit" id="submit-button">제출</button>
+        </form>
+    </div>
     <!-- 투표 결과 섹션 -->
     <div id="vote-results-section" style="display: none;">
         <h1>실시간 투표 결과</h1>
@@ -40,12 +47,10 @@
     </div>
 
     <main>
-
-
-        <div id="room-section">
+        <div id="room-section" style="text-align: center;">
             <p>아래 링크를 공유하세요!</p>
             <p id="room-link"></p>
-            <p style="color: red; cursor: pointer;" onclick="copyLink()">링크 복사</p>
+            <button id="copy-link-button" onclick="copyLink()">링크 복사</button>
         </div>
 
         <div id="game-controls" style="display: block;">
@@ -53,7 +58,7 @@
             <button id="start-game-btn" onclick="showPlayerCount()">게임 시작</button>
         </div>
 
-        <div id="alert" style="display: none;">
+        <div id="alert" style="display:none; position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background-color:rgba(0, 0, 0, 0.8); color:white; padding:10px 20px; border-radius:5px; opacity:0; transition:opacity 0.3s ease;">
             <!-- 여기에는 알림 메시지가 표시됩니다 -->
         </div>
 
@@ -66,14 +71,7 @@
             </div>
 
             <div id="bottom-left-section">
-                <div id="declaration-section">
-                    <h2>발언</h2>
-                    <ul id="declaration-list"></ul>
-                    <form id="declaration-form" onsubmit="submitDeclaration(event)">
-                        <input type="text" id="declarationField" placeholder="발언하세요" required>
-                        <button type="submit" id="submit-button">제출</button>
-                    </form>
-                </div>
+
             </div>
 
             <div id="right-section">
@@ -137,9 +135,6 @@
         </div>
     </main>
 
-    <footer>
-        <p>&copy; 2023 게임 회사</p>
-    </footer>
     <script src="/js/room.js"></script>
     </body>
 </head>

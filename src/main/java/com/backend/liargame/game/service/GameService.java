@@ -3,17 +3,17 @@ package com.backend.liargame.game.service;
 import com.backend.liargame.common.service.WebSocketService;
 import com.backend.liargame.game.contoller.LiarGuessResponseDto;
 import com.backend.liargame.game.dto.*;
-import com.backend.liargame.game.entity.*;
+import com.backend.liargame.game.entity.GameStatus;
+import com.backend.liargame.game.entity.Keyword;
+import com.backend.liargame.game.entity.Topic;
 import com.backend.liargame.game.repository.GameRepository;
 import com.backend.liargame.game.repository.KeywordRepository;
 import com.backend.liargame.game.repository.TopicRepository;
-import com.backend.liargame.member.entity.Player;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.PostMapping;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -219,15 +219,29 @@ public class GameService {
             String roomCode = entry.getKey();
             int timeLeft = entry.getValue();
 
+            CopyOnWriteArrayList<String> players = webSocketService.getPlayers(roomCode);
+
+            if (players.isEmpty()) {
+                // 방에 플레이어가 없으면 작업을 중지
+                log.warn("No players left in room: " + roomCode);
+                timeLeftMap.remove(roomCode);  // 더 이상 시간을 카운트하지 않도록 함
+                currentTurnMap.remove(roomCode);  // currentTurn 정보도 삭제
+                continue;  // 다음 방으로 넘어감
+            }
 //            log.info("[Scheduling] - roomCode : " + roomCode);
             if (timeLeft > 0) {
-                CopyOnWriteArrayList<String> players = webSocketService.getPlayers(roomCode);
                 int currentTurn = currentTurnMap.getOrDefault(roomCode, 0);
-                String currentPlayer = players.get(currentTurn);
-                TimerMessage timerMessage = new TimerMessage(timeLeft, currentPlayer);
-//                log.info("[Scheduling] - Broadcasting TimerMessage: " + timerMessage); // 추가된 로그
-                messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/timer", new TimerMessage(timeLeft, currentPlayer));
-                timeLeftMap.put(roomCode, timeLeft - 1);
+                // 플레이어가 남아 있는지, currentTurn 이 유효한지 확인
+                if (!players.isEmpty() && currentTurn < players.size()) {
+                    String currentPlayer = players.get(currentTurn);
+                    TimerMessage timerMessage = new TimerMessage(timeLeft, currentPlayer);
+//                  log.info("[Scheduling] - Broadcasting TimerMessage: " + timerMessage); // 추가된 로그
+                    messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/timer", new TimerMessage(timeLeft, currentPlayer));
+                    timeLeftMap.put(roomCode, timeLeft - 1);
+                }
+                else {
+                    nextPlayerTurn(roomCode);
+                }
             } else {
                 nextPlayerTurn(roomCode);
             }
@@ -236,6 +250,13 @@ public class GameService {
 
     private void nextPlayerTurn(String roomCode) {
         CopyOnWriteArrayList<String> players = webSocketService.getPlayers(roomCode);
+
+        // 플레이어 리스트가 비어 있는지 확인
+        if (players.isEmpty()) {
+            log.warn("No players left in room: " + roomCode);
+            return; // 플레이어가 없으면 더 이상 진행하지 않음
+        }
+
         int currentTurn = currentTurnMap.getOrDefault(roomCode, 0);
         currentTurn = (currentTurn + 1) % players.size();
         currentTurnMap.put(roomCode, currentTurn);

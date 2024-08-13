@@ -11,6 +11,7 @@ let voteStartTime = 30; // 투표 시작 대기 시간 (초)
 let votes = {}; // 플레이어 투표 상태
 let declarations = {}; // 플레이어 발언 상태
 let voteStarted = false;  // 투표 시작 상태를 추적하는 변수
+let voteTimeoutId; // 전역 변수로 타이머 ID를 저장
 
 window.onload = function() {
     if (!nickname) {
@@ -103,6 +104,8 @@ async function startGame() {
             const data = await response.json();
             console.log("게임 시작 요청이 성공했습니다.");
 
+            // 클래스 리스트를 배열로 변환하여 로그로 출력
+            // console.log(Array.from(gameSection.classList));
         } else {
             alert('게임을 시작하는 데 실패했습니다.');
         }
@@ -173,8 +176,8 @@ function connect(nickname) {
             const gameSection = document.getElementById('game-section');
             gameSection.classList.remove('hidden');
             gameSection.classList.add('active');
-            
-            startVote();
+
+            document.getElementById('clock-section').style.display = 'block';
         });
 
         // 턴 구독
@@ -357,28 +360,28 @@ function updateVoteResults(votes) {
 
 
 
-function startVote() {
-    const voteSection = document.getElementById('vote-section');
-    const votePlayers = document.getElementById('vote-players');
-    const voteResultsSection = document.getElementById('vote-results-section');
-    voteSection.style.display = 'block';
-    voteResultsSection.style.display = 'block';
-
-    fetch(`/api/game/players/${roomCode}`)
-        .then(response => response.json())
-        .then(players => {
-            votePlayers.innerHTML = '';
-
-            players.forEach((player, index) => {
-                const voteButton = document.createElement('button');
-                voteButton.innerText = player;
-                voteButton.onclick = function() { openVoteModal(player); };
-                votePlayers.appendChild(voteButton);
-            });
-
-            console.log(`Starting vote with players: ${players}`); // 로그 추가
-        });
-}
+// function startVote() {
+//     const voteSection = document.getElementById('vote-section');
+//     const votePlayers = document.getElementById('vote-players');
+//     const voteResultsSection = document.getElementById('vote-results-section');
+//     voteSection.style.display = 'block';
+//     voteResultsSection.style.display = 'block';
+//
+//     fetch(`/api/game/players/${roomCode}`)
+//         .then(response => response.json())
+//         .then(players => {
+//             votePlayers.innerHTML = '';
+//
+//             players.forEach((player, index) => {
+//                 const voteButton = document.createElement('button');
+//                 voteButton.innerText = player;
+//                 voteButton.onclick = function() { openVoteModal(player); };
+//                 votePlayers.appendChild(voteButton);
+//             });
+//
+//             console.log(`Starting vote with players: ${players}`); // 로그 추가
+//         });
+// }
 
 var currentUser = sessionStorage.getItem('nickname');
 
@@ -523,13 +526,20 @@ function showVotePrompt() {
     document.getElementById('vote-prompt-message').innerHTML = votePromptMessage;
     document.getElementById('vote-prompt').style.display = 'block';
 
-    // 60초 후 자동으로 투표 모달을 표시
-    setTimeout(() => {
+    // 이전에 설정된 타이머가 있다면 취소
+    if (voteTimeoutId) {
+        clearTimeout(voteTimeoutId);
+    }
+
+    // 새로운 타이머 설정하고 60초 후 자동으로 투표 모달을 표시
+    voteTimeoutId = setTimeout(() => {
         document.getElementById('vote-prompt').style.display = 'none';
         if (!voteStarted) {  // 투표가 아직 시작되지 않았다면
             showVoteModal(); // 투표 모달을 자동으로 표시
         }
     }, 60000);
+
+
 }
 
 // 라이어가 걸린 후 추측 시작 메시지 표시 함수
@@ -547,12 +557,27 @@ function showLiarGuessPrompt() {
 
 function updateDeclarationList(declarations) {
     const declarationList = document.getElementById('declaration-list');
-    declarationList.innerHTML = ''; // 기존 선언 초기화
+
+    // 이미 추가된 플레이어들의 선언을 추적하기 위해 Set을 사용
+    const existingPlayers = new Set();
+
+    // 현재 리스트에 존재하는 플레이어들의 선언을 추적
+    declarationList.querySelectorAll('.fancy-declaration').forEach(item => {
+        const playerName = item.querySelector('.player-name').innerText;
+        existingPlayers.add(playerName);
+    });
 
     for (const [player, declaration] of Object.entries(declarations)) {
-        const listItem = document.createElement('li');
-        listItem.innerText = `${player}: ${declaration}`;
-        declarationList.appendChild(listItem);
+        if (!existingPlayers.has(player)) {
+
+            const listItem = document.createElement('li');
+            listItem.classList.add('fancy-declaration'); // 클래스 추가
+            listItem.innerHTML = `
+            <span class="player-name">${player}</span>
+            <p class="declaration-text">${declaration}</p>
+        `;
+            declarationList.prepend(listItem);
+        }
     }
 }
 
@@ -582,30 +607,30 @@ function liarVoteResults(message){
     // 각 플레이어의 투표 결과를 표시
     Object.keys(votes).forEach(player => {
         const resultItem = document.createElement("p");
-        resultItem.textContent = `${player}: ${votes[player]} 표`;
+        resultItem.innerHTML = `<strong>${player}</strong>: <span style="color: red;">${votes[player]} 표</span>`;
         voteResult.appendChild(resultItem);
     });
 
     // 최다 득표자 표시
     const mostVotedMessage = document.createElement("p");
     if (mostVotedPlayers.length > 1) {
-        mostVotedMessage.textContent = `최다 득표자는 ${mostVotedPlayers.join(", ")} 입니다.`;
+        mostVotedMessage.innerHTML = `최다 득표자는 <strong>${mostVotedPlayers.join(", ")}</strong> 입니다.`;
     } else {
-        mostVotedMessage.textContent = `최다 득표자는 ${mostVotedPlayers[0]} 입니다.`;
+        mostVotedMessage.innerHTML = `최다 득표자는 <strong>${mostVotedPlayers[0]}</strong> 입니다.`;
     }
     voteResult.appendChild(mostVotedMessage);
 
     // 라이어 승리 여부에 따른 메시지 표시
     const liarResultMessage = document.createElement("p");
     if (liarWon) {
-        liarResultMessage.innerHTML = `라이어가 승리했습니다! <br>라이어는 ${liar} 였습니다!`;
+        liarResultMessage.innerHTML = `<span style="color: red;">라이어가 승리했습니다!</span> <br> 라이어는 <strong>${liar}</strong> 였습니다!`;
         voteResult.appendChild(liarResultMessage);
     } else {
-        liarResultMessage.textContent = "라이어 검거 완료!";
+        liarResultMessage.innerHTML = `<strong>라이어 검거 완료!</strong>`;
         voteResult.appendChild(liarResultMessage);
 
         const secondChanceMessage = document.createElement("p");
-        secondChanceMessage.textContent = "라이어에게 한번 더 기회가 주어집니다.";
+        secondChanceMessage.innerHTML = `<span style="color: red;">라이어에게 한번 더 기회가 주어집니다.</span>`;
         voteResult.appendChild(secondChanceMessage);
 
 
@@ -652,9 +677,6 @@ async function showLiarOptions() {
                 // 모달을 화면에 표시
                 liarModal.style.display = "block";
             } else {
-                // 비라이어 사용자에게는 라이어가 제시어를 맞추고 있다는 메시지만 표시
-                const optionContainer = document.getElementById("option-container");
-                optionContainer.innerHTML = "<p>라이어가 제시어를 맞추고 있습니다...</p>";
             }
         } else {
             throw new Error('라이어 옵션을 가져오는데 에러가 걸렸어요!');
@@ -692,25 +714,21 @@ function LiarLastGuess(message) {
     const resultMessage = document.createElement("p");
 
     if (resultData.correct) {
-        resultMessage.innerHTML = `라이어가 제시어를 맞추지 못했습니다! <br> 라이어가 선택한 정답은 ${resultData.selectedOption}입니다. <br> 정답은 ${resultData.correctAnswer} 였습니다.`;
-
+        resultMessage.innerHTML = `<span style="color: red;">라이어가 제시어를 맞췄습니다. </span> <br> <strong>라이어가 승리했습니다.</strong>`;
     } else {
-        resultMessage.innerHTML = `라이어가 제시어를 맞추지 못했습니다! <br> 라이어가 선택한 정답은 ${resultData.selectedOption}입니다. <br> 정답은 ${resultData.correctAnswer} 였습니다.`;
-
+        resultMessage.innerHTML = `<span style="color: red;">라이어가 제시어를 맞추지 못했습니다!</span> <br> 라이어가 선택한 정답은 <strong>${resultData.selectedOption}</strong>입니다. <br> 정답은 <strong>${resultData.correctAnswer}</strong> 였습니다.`;
     }
 
     const voteResult = document.getElementById("vote-results");
     voteResult.appendChild(resultMessage);
 
-    // 선택지가 더 이상 보이지 않도록 숨김
-    const optionContainer = document.getElementById("option-container");
-    optionContainer.style.display = "none";
 }
 
 function handleGameEnd(message) {
     // 1. UI 요소들 초기화
-    document.getElementById('game-section').style.display = 'none'; // 게임 화면 숨김
-    document.getElementById('vote-section').style.display = 'none'; // 투표 섹션 숨김
+    document.getElementById('game-section').classList.add('hidden');
+    document.getElementById('game-section').classList.remove('active');
+
     document.getElementById('vote-results-section').style.display = 'none'; // 투표 결과 섹션 숨김
     document.getElementById('vote-modal').style.display = 'none'; // 투표 모달 숨김
     document.getElementById('liar-modal').style.display = 'none'; // 라이어 모달 숨김
@@ -720,7 +738,9 @@ function handleGameEnd(message) {
 
     // 2. UI 상태 초기화
     document.getElementById('vote-results').innerHTML = ''; // 투표 결과 초기화
-    document.getElementById('player-boxes').innerHTML = ''; // 플레이어 박스 초기화
+    document.getElementById('vote-for-liar-vote-result').innerHTML = '0명 동의'; // 투표 결과 초기화
+
+    // document.getElementById('player-boxes').innerHTML = ''; // 플레이어 박스 초기화
     document.getElementById('declaration-list').innerHTML = ''; // 선언 리스트 초기화
     document.getElementById('turn-timer').innerText = ''; // 타이머 초기화
     document.getElementById('game-content').innerText = ''; // 게임 콘텐츠 초기화
@@ -731,14 +751,19 @@ function handleGameEnd(message) {
     votes = {}; // 투표 상태 초기화
     declarations = {}; // 발언 상태 초기화
     voteStarted = false;  // 투표 시작 상태 초기화
+    // 이전 게임의 타이머를 취소하여 영향을 없앰
+    if (voteTimeoutId) {
+        clearTimeout(voteTimeoutId);
+        voteTimeoutId = null; // 타이머 ID 초기화
+    }
     clearInterval(turnTimer); // 기존의 턴 타이머 초기화
     clearInterval(voteTimer); // 기존의 투표 타이머 초기화
 
-    // 4. 다시 하기 버튼을 표시하거나 홈으로 돌아가는 버튼 표시
-    document.getElementById('game-controls').innerHTML = `
-        <button onclick="resetSessionAndGoHome()">홈으로</button>
-        <button onclick="restartGame()">다시하기</button>
-    `;
+    // // 4. 다시 하기 버튼을 표시하거나 홈으로 돌아가는 버튼 표시
+    // document.getElementById('game-controls').innerHTML = `
+    //     <button onclick="resetSessionAndGoHome()">홈으로</button>
+    //     <button onclick="restartGame()">다시하기</button>
+    // `;
 }
 
 function restartGame() {
@@ -755,7 +780,7 @@ function restartGame() {
             if (response.ok) {
                 console.log("게임이 종료되었습니다. 새로운 게임을 시작합니다.");
                 // 서버에서 게임이 종료된 후 새로운 게임을 시작
-                startGame(); // 기존의 startGame 함수 호출
+                confirmStartGame();
             } else {
                 console.error("게임 종료 요청에 실패했습니다.");
             }
