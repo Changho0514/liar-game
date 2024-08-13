@@ -32,7 +32,14 @@
         </div>
 
     </div>
-
+    <div id="declaration-section">
+        <h2>발언</h2>
+        <ul id="declaration-list"></ul>
+        <form id="declaration-form" onsubmit="submitDeclaration(event)">
+            <input type="text" id="declarationField" placeholder="발언하세요" required>
+            <button type="submit" id="submit-button">제출</button>
+        </form>
+    </div>
     <!-- 투표 결과 섹션 -->
     <div id="vote-results-section" style="display: none;">
         <h1>실시간 투표 결과</h1>
@@ -64,14 +71,7 @@
             </div>
 
             <div id="bottom-left-section">
-                <div id="declaration-section">
-                    <h2>발언</h2>
-                    <ul id="declaration-list"></ul>
-                    <form id="declaration-form" onsubmit="submitDeclaration(event)">
-                        <input type="text" id="declarationField" placeholder="발언하세요" required>
-                        <button type="submit" id="submit-button">제출</button>
-                    </form>
-                </div>
+
             </div>
 
             <div id="right-section">
