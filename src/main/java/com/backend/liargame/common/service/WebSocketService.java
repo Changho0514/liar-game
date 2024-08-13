@@ -99,7 +99,7 @@ public class WebSocketService {
     }
 
     public boolean isNicknameTaken(String roomCode, String nickname) {
-        CopyOnWriteArrayList<String> players = roomPlayers.get(roomCode);
+        CopyOnWriteArrayList<String> players = roomPlayers.getOrDefault(roomCode, new CopyOnWriteArrayList<>());
         return players.contains(nickname);
     }
 }
