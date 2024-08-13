@@ -26,7 +26,9 @@ main {
     background-color: #ffffff; /* 순백색 */
     border-radius: 10px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* 부드러운 그림자 */
+    max-height: 80vh;
     padding-bottom: 80px; /* Footer에 가려지지 않도록 아래쪽 여백 추가 */
+    overflow-y: auto;
 }
 
 h2 {
@@ -432,6 +434,9 @@ button:hover {
     gap: 10px;
     height: auto; /* 화면 전체를 차지 */
     padding: 20px;
+    max-height: 80vh;
+    min-height: 60vh;
+    overflow-y: auto;
     box-sizing: border-box;
     grid-template-areas:
         "top-left right-section"
