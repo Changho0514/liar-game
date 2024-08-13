@@ -11,6 +11,7 @@ let voteStartTime = 30; // 투표 시작 대기 시간 (초)
 let votes = {}; // 플레이어 투표 상태
 let declarations = {}; // 플레이어 발언 상태
 let voteStarted = false;  // 투표 시작 상태를 추적하는 변수
+let voteTimeoutId; // 전역 변수로 타이머 ID를 저장
 
 window.onload = function() {
     if (!nickname) {
@@ -525,13 +526,20 @@ function showVotePrompt() {
     document.getElementById('vote-prompt-message').innerHTML = votePromptMessage;
     document.getElementById('vote-prompt').style.display = 'block';
 
-    // 60초 후 자동으로 투표 모달을 표시
-    setTimeout(() => {
+    // 이전에 설정된 타이머가 있다면 취소
+    if (voteTimeoutId) {
+        clearTimeout(voteTimeoutId);
+    }
+
+    // 새로운 타이머 설정하고 60초 후 자동으로 투표 모달을 표시
+    voteTimeoutId = setTimeout(() => {
         document.getElementById('vote-prompt').style.display = 'none';
         if (!voteStarted) {  // 투표가 아직 시작되지 않았다면
             showVoteModal(); // 투표 모달을 자동으로 표시
         }
     }, 60000);
+
+
 }
 
 // 라이어가 걸린 후 추측 시작 메시지 표시 함수
@@ -553,7 +561,11 @@ function updateDeclarationList(declarations) {
 
     for (const [player, declaration] of Object.entries(declarations)) {
         const listItem = document.createElement('li');
-        listItem.innerText = `${player}: ${declaration}`;
+        listItem.classList.add('fancy-declaration'); // 클래스 추가
+        listItem.innerHTML = `
+            <span class="player-name">${player}</span>
+            <p class="declaration-text">${declaration}</p>
+        `;
         declarationList.appendChild(listItem);
     }
 }
@@ -728,6 +740,11 @@ function handleGameEnd(message) {
     votes = {}; // 투표 상태 초기화
     declarations = {}; // 발언 상태 초기화
     voteStarted = false;  // 투표 시작 상태 초기화
+    // 이전 게임의 타이머를 취소하여 영향을 없앰
+    if (voteTimeoutId) {
+        clearTimeout(voteTimeoutId);
+        voteTimeoutId = null; // 타이머 ID 초기화
+    }
     clearInterval(turnTimer); // 기존의 턴 타이머 초기화
     clearInterval(voteTimer); // 기존의 투표 타이머 초기화
 
