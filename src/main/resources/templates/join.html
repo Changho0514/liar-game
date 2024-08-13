@@ -5,6 +5,34 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>라이어 게임 방 입장</title>
     <link rel="stylesheet" href="/css/styles.css">
+    <style>
+        /* 버튼들을 감싸는 div에 대한 스타일 */
+        .form-buttons {
+            display: flex;
+            justify-content: right; /* 오른쪽 정렬 */
+            gap: 20px; /* 버튼들 간의 간격 */
+            margin-left: -20px;
+        }
+
+        /* 공통 버튼 스타일 */
+        button {
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        /* 취소 버튼에 추가적인 오른쪽 마진 */
+        button:last-child {
+            margin-right: 20px;
+        }
+
+        /* 버튼 hover 효과 */
+        button:hover {
+            background-color: #357ABD;
+        }
+
+    </style>
 </head>
 <body>
 <main>
@@ -12,8 +40,10 @@
     <div id="nickname-section">
         <form id="nickname-form" onsubmit="joinRoom(event)">
             <input type="text" id="nickname" placeholder="이름을 입력해주세요." required>
-            <button type="submit" id="join-btn" disabled>입장</button>
-            <button type="button" onclick="resetSessionAndGoHome()">취소</button>
+            <div class="form-buttons">
+                <button type="submit" id="join-btn" disabled>입장</button>
+                <button type="button" onclick="resetSessionAndGoHome()">취소</button>
+            </div>
         </form>
     </div>
 </main>

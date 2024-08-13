@@ -102,14 +102,9 @@ async function startGame() {
         if (response.ok) {
             const data = await response.json();
             console.log("게임 시작 요청이 성공했습니다.");
-            const gameSection = document.getElementById('game-section');
-            gameSection.classList.remove('hidden');
-            gameSection.classList.add('active');
-
-            document.getElementById('clock-section').style.display = 'block';
 
             // 클래스 리스트를 배열로 변환하여 로그로 출력
-            console.log(Array.from(gameSection.classList));
+            // console.log(Array.from(gameSection.classList));
         } else {
             alert('게임을 시작하는 데 실패했습니다.');
         }
@@ -180,6 +175,8 @@ function connect(nickname) {
             const gameSection = document.getElementById('game-section');
             gameSection.classList.remove('hidden');
             gameSection.classList.add('active');
+
+            document.getElementById('clock-section').style.display = 'block';
         });
 
         // 턴 구독
@@ -708,6 +705,7 @@ function handleGameEnd(message) {
     // 1. UI 요소들 초기화
     document.getElementById('game-section').classList.add('hidden');
     document.getElementById('game-section').classList.remove('active');
+
     document.getElementById('vote-results-section').style.display = 'none'; // 투표 결과 섹션 숨김
     document.getElementById('vote-modal').style.display = 'none'; // 투표 모달 숨김
     document.getElementById('liar-modal').style.display = 'none'; // 라이어 모달 숨김
