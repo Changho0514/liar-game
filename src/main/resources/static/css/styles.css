@@ -39,6 +39,30 @@ h2 {
     font-size: 2.2em; /* 텍스트 크기 */
 }
 
+#room-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* 수직 방향으로 가운데 정렬 */
+    justify-content: center; /* 수평 방향으로 가운데 정렬 */
+    padding: 20px;
+}
+
+#copy-link-button {
+    background-color: #4A90E2;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    font-size: 1rem;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    margin-top: 10px;
+}
+
+#copy-link-button:hover {
+    background-color: #357ABD;
+}
+
 #player-list {
     display: flex;
     flex-wrap: wrap;
