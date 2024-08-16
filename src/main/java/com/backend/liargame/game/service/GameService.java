@@ -65,10 +65,21 @@ public class GameService {
         Topic topic = topicRepository.findRandomTopic()
                 .orElseThrow(() -> new RuntimeException("No Topic found"));
 
+        log.info("[GameService] - Topic ID: {}", topic.getId());
+
         // 해당 토픽에 속하는 랜덤한 keyword 가져오기
+        Optional<Keyword> keywordOpt = keywordRepository.findRandomKeywordByTopicId(topic.getId());
+        if (keywordOpt.isPresent()) {
+            log.info("Selected Keyword: {}", keywordOpt.get().getName());
+        } else {
+            log.warn("No Keyword found for Topic ID: {}", topic.getId());
+        }
+
+
         String keyword = keywordRepository.findRandomKeywordByTopicId(topic.getId())
                 .map(Keyword::getName)
                 .orElse("실패한 지시어 입니다.");
+
 
         webSocketService.startGame(roomCode, liarIndex, topic.getName(), keyword);
         gameStatusMap.put(roomCode, GameStatus.IN_PROGRESS); // 시작 상태로 변경
@@ -288,16 +299,21 @@ public class GameService {
 
     public LiarOptionResponseDto liarOptions(String roomCode) {
         CopyOnWriteArrayList<String> players = webSocketService.getPlayers(roomCode);
+        log.info("[GameService - liarOptions] - players.size() : {}", players.size());
         Integer liarIndex = webSocketService.getLiarIndex(roomCode);
-
+        log.info("[GameService - liarOptions] - liarIndex : {}", liarIndex);
         String liar = players.get(liarIndex);
-
+        log.info("[GameService - liarOptions] - liar : {}", liar);
         List<String> topicAndKeyword = webSocketService.getKeyword(roomCode);
         String topic = topicAndKeyword.get(0);
         String keyword = topicAndKeyword.get(1);
-
+        log.info("[GameService - liarOptions] - topic : {}", topic);
+        log.info("[GameService - liarOptions] - keyword : {}", keyword);
         Long topicId = topicRepository.findIdByName(topic);
+        log.info("[GameService - liarOptions] - topicId : {}", topicId);
         List<String> optionalKeywords = keywordRepository.findOptionKeywordByTopicIdExcludingKeyword(topicId, keyword);
+        log.info("[GameService - liarOptions] - optionalKeywords.getFirst() : {}", optionalKeywords.getFirst());
+
         optionalKeywords.add(keyword);
 
         // 리스트를 무작위로 섞음
