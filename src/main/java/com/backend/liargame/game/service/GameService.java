@@ -42,6 +42,8 @@ public class GameService {
     private final ThreadPoolTaskScheduler scheduler;
     private final Map<String, ScheduledFuture<?>> voteStartTasks = new ConcurrentHashMap<>();
 
+    private final int TURN_TIME = 20;  // 각 플레이어 별 시간
+
     public GameService(GameRepository gameRepository, TopicRepository topicRepository, KeywordRepository keywordRepository, WebSocketService webSocketService, SimpMessagingTemplate messagingTemplate, ThreadPoolTaskScheduler scheduler) {
         this.gameRepository = gameRepository;
         this.topicRepository = topicRepository;
@@ -88,7 +90,7 @@ public class GameService {
         int initialTurn = new Random().nextInt(players.size());
         currentTurnMap.put(roomCode, initialTurn);
 
-        timeLeftMap.put(roomCode, 15); // 초기 남은 시간 설정
+        timeLeftMap.put(roomCode, TURN_TIME); // 초기 남은 시간 설정
 
         // 첫 번째 턴 플레이어 알림
         webSocketService.convertAndSend("/topic/room/" + roomCode + "/turnUpdate", players.get(initialTurn));
@@ -213,11 +215,11 @@ public class GameService {
         // 턴을 다음 플레이어로 넘김
         currentTurn = (currentTurn + 1) % players.size();
         currentTurnMap.put(roomCode, currentTurn);
-        timeLeftMap.put(roomCode, 15); // 남은 시간 초기화
+        timeLeftMap.put(roomCode, TURN_TIME); // 남은 시간 초기화
 
         String nextPlayer = players.get(currentTurn);
         webSocketService.convertAndSend("/topic/room/" + roomCode + "/turnUpdate", nextPlayer);
-        messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/timer", new TimerMessage(15, nextPlayer)); // 초기화된 타이머 브로드캐스트
+        messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/timer", new TimerMessage(TURN_TIME, nextPlayer)); // 초기화된 타이머 브로드캐스트
     }
 
 
@@ -271,12 +273,12 @@ public class GameService {
         int currentTurn = currentTurnMap.getOrDefault(roomCode, 0);
         currentTurn = (currentTurn + 1) % players.size();
         currentTurnMap.put(roomCode, currentTurn);
-        timeLeftMap.put(roomCode, 15);
+        timeLeftMap.put(roomCode, TURN_TIME);
 
         String nextPlayer = players.get(currentTurn);
         webSocketService.convertAndSend("/topic/room/" + roomCode + "/turnUpdate", nextPlayer);
 
-        TimerMessage timerMessage = new TimerMessage(15, nextPlayer);
+        TimerMessage timerMessage = new TimerMessage(TURN_TIME, nextPlayer);
         log.info("[nextPlayerTurn] - Broadcasting TimerMessage: " + timerMessage); // 추가된 로그
         messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/timer", timerMessage); // 타이머 리셋 브로드캐스트
     }

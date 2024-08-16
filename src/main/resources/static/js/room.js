@@ -188,8 +188,6 @@ function connect(nickname) {
             // console.log('Received timer message:', message.body); // 추가된 로그
             try {
                 const timerMessage = JSON.parse(message.body);
-                // console.log('timerMessage.timeLeft: ' + timerMessage.timeLeft);
-                // console.log('timerMessage.currentPlayer: ' + timerMessage.currentPlayer);
                 updateTimer(timerMessage.timeLeft, timerMessage.currentPlayer);
             } catch (e) {
                 console.error('Error parsing timer message:', e, message.body);
@@ -501,7 +499,7 @@ function showLiarGuessPrompt() {
     // 라이어가 제시어를 맞추는 시간을 15초로 설정합니다.
     setTimeout(() => {
         document.getElementById('liar-guess-prompt').style.display = 'none';
-    }, 15000);
+    }, 30000);
 }
 
 
