@@ -582,10 +582,6 @@ function liarVoteResults(message){
 
 }
 
-function scrollToBottom() {
-    const chatContainer = document.getElementById('chatContainer');
-    chatContainer.scrollTop = chatContainer.scrollHeight;
-}
 
 async function showLiarOptions() {
     const roomCode = window.location.pathname.split('/').pop();
