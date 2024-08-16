@@ -500,3 +500,19 @@ button:hover {
 #vote-modal-text, #vote-confirm-modal-text {
     font-size: 1.4rem;
 }
+
+/* 발언 칸 반짝이게 만들기 */
+@keyframes blink {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0;
+    }
+}
+
+.highlight {
+    font-weight: bold;
+    color: #FF6F61; /* 코랄색 */
+    animation: blink 1s infinite; /* 1초마다 반짝이며 반복 */
+}

@@ -336,7 +336,7 @@ var currentUser = sessionStorage.getItem('nickname');
 function updateTurnUI(currentTurnPlayer) {
 
     const turnMessage = document.getElementById('current-turn-message');
-    turnMessage.innerText = `${currentTurnPlayer} 님이 발언할 차례입니다`;
+    turnMessage.innerHTML = `<span class="highlight">${currentTurnPlayer}</span> 님이 발언할 차례입니다`
 
     const declarationField = document.getElementById('declarationField');
     const submitButton = document.getElementById('submit-button'); //
@@ -345,10 +345,12 @@ function updateTurnUI(currentTurnPlayer) {
         // 현재 턴이 자신의 턴일 때 제출 입력 필드 활성화 및 제출 버튼 활성화
         declarationField.disabled = false;
         submitButton.disabled = false;
+        declarationField.placeholder = "지금 발언하세요!"
         // console.log('declaration-section을 보여줍니다.');
     } else {
         // 현재 턴이 자신의 턴이 아닐 때 제출 버튼만 비활성화
         declarationField.disabled = true;
+        declarationField.placeholder = "다른 사람의 발언 턴입니다!"
         submitButton.disabled = true;
         // console.log('declaration-section을 숨깁니다.');
     }
