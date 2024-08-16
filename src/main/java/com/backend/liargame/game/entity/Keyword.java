@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 
 @Entity
 @Getter
+@Table(name = "keyword")
 @NoArgsConstructor
 @AllArgsConstructor
 public class Keyword {

@@ -9,6 +9,7 @@ import java.util.List;
 
 @Entity
 @Getter
+@Table(name = "topic")
 @NoArgsConstructor
 @AllArgsConstructor
 public class Topic {

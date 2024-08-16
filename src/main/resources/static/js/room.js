@@ -115,31 +115,6 @@ async function startGame() {
     }
 }
 
-// function updatePlayerBoxes(players) {
-//     if (!players) {
-//         console.error('players 배열이 정의되지 않았습니다.');
-//         return;
-//     }
-//
-//     const playerBoxes = document.getElementById('player-boxes');
-//     playerBoxes.innerHTML = ''; // 기존 박스 초기화
-//
-//     let index = 0;
-//     players.forEach(player => {
-//         console.log(`Creating box for player: ${player}`); // 로그 추가
-//         const playerBox = document.createElement('div');
-//         playerBox.className = 'player-box';
-//         playerBox.id = 'player-box-' + player;
-//         playerBox.innerText = player;
-//         playerBox.style.left = (index % 2 === 0 ? '100px' : '400px');
-//         playerBox.style.top = (50 + Math.floor(index / 2) * 100) + 'px';
-//         playerBox.style.position = 'absolute'; // position 추가
-//         playerBoxes.appendChild(playerBox);
-//         index++;
-//     });
-// }
-
-
 function sendMessage(event) {
     event.preventDefault();
     const content = document.getElementById('chatField').value;
@@ -245,16 +220,6 @@ function connect(nickname) {
         // 게임 종료 토픽 구독
         stompClient.subscribe('/topic/room/' + roomCode + '/gameEnd', function (message){
             console.log('게임종료!!!');
-            console.log('게임종료!!!');
-            console.log('게임종료!!!');
-            console.log('게임종료!!!');
-            console.log('게임종료!!!');
-            console.log('게임종료!!!');
-            console.log('게임종료!!!');
-            console.log('게임종료!!!');
-            console.log('게임종료!!!');
-            console.log('게임종료!!!');
-            console.log('게임종료!!!');
             handleGameEnd(message);
         });
 
@@ -286,6 +251,7 @@ function showMessage(message) {
     const messageElement = document.createElement('div');
     messageElement.appendChild(document.createTextNode(message.name + ": " + message.content));
     messages.appendChild(messageElement);
+    messages.scrollTop = messages.scrollHeight; // 채팅 입력시 맨 아래로 이동
 }
 
 function checkGameStatus() {
@@ -359,29 +325,6 @@ function updateVoteResults(votes) {
 }
 
 
-
-// function startVote() {
-//     const voteSection = document.getElementById('vote-section');
-//     const votePlayers = document.getElementById('vote-players');
-//     const voteResultsSection = document.getElementById('vote-results-section');
-//     voteSection.style.display = 'block';
-//     voteResultsSection.style.display = 'block';
-//
-//     fetch(`/api/game/players/${roomCode}`)
-//         .then(response => response.json())
-//         .then(players => {
-//             votePlayers.innerHTML = '';
-//
-//             players.forEach((player, index) => {
-//                 const voteButton = document.createElement('button');
-//                 voteButton.innerText = player;
-//                 voteButton.onclick = function() { openVoteModal(player); };
-//                 votePlayers.appendChild(voteButton);
-//             });
-//
-//             console.log(`Starting vote with players: ${players}`); // 로그 추가
-//         });
-// }
 
 var currentUser = sessionStorage.getItem('nickname');
 
@@ -639,6 +582,7 @@ function liarVoteResults(message){
 
 }
 
+
 async function showLiarOptions() {
     const roomCode = window.location.pathname.split('/').pop();
     try {
@@ -758,12 +702,6 @@ function handleGameEnd(message) {
     }
     clearInterval(turnTimer); // 기존의 턴 타이머 초기화
     clearInterval(voteTimer); // 기존의 투표 타이머 초기화
-
-    // // 4. 다시 하기 버튼을 표시하거나 홈으로 돌아가는 버튼 표시
-    // document.getElementById('game-controls').innerHTML = `
-    //     <button onclick="resetSessionAndGoHome()">홈으로</button>
-    //     <button onclick="restartGame()">다시하기</button>
-    // `;
 }
 
 function restartGame() {
