@@ -146,6 +146,7 @@ function connect(nickname) {
             // updatePlayerBoxes(players); // 박스 그리기
             document.getElementById('game-content').innerHTML = gameMessage;
             document.getElementById('room-section').style.display = 'none';
+            document.getElementById('declaration-section').style.display = 'block';
 
             // 'hidden' 클래스를 제거하고 'active' 클래스를 추가
             const gameSection = document.getElementById('game-section');
