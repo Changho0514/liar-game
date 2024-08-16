@@ -220,6 +220,28 @@ button:hover {
     white-space: normal; /* 자동 줄바꿈 허용 */
 }
 
+.message-item {
+    background-color: #f0f0f0; /* 메시지 박스 배경색 */
+    padding: 8px;
+    border-radius: 5px;
+    margin-bottom: 10px; /* 메시지 간의 간격 */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* 메시지 박스의 그림자 */
+}
+
+/* 플레이어 이름 스타일 */
+.message-item .player-name {
+    font-weight: bold; /* 굵은 글씨 */
+    color: #4A90E2; /* 플레이어 이름을 하늘색으로 강조 */
+    margin-bottom: 5px;
+    display: block;
+}
+
+/* 메시지 텍스트 스타일 */
+.message-item .message-text {
+    font-size: 1em;
+    color: #333333; /* 텍스트 색상 */
+}
+
 /* 발언 섹션 스타일 */
 #declaration-section {
     padding: 10px;

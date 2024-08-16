@@ -250,7 +250,11 @@ function updatePlayerList(players) {
 function showMessage(message) {
     const messages = document.getElementById('messages');
     const messageElement = document.createElement('div');
-    messageElement.appendChild(document.createTextNode(message.name + ": " + message.content));
+    messageElement.classList.add('message-item');
+    messageElement.innerHTML = `
+        <span class="player-name"> ` + message.name + ` : </span>
+        <span class="message-text"> ` + message.content + ` </span>
+    `
     messages.appendChild(messageElement);
     messages.scrollTop = messages.scrollHeight; // 채팅 입력시 맨 아래로 이동
 }
