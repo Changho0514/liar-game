@@ -1,9 +1,8 @@
 package com.backend.liargame.game.contoller;
 
 import com.backend.liargame.chat.ChatMessage;
-import com.backend.liargame.common.service.WebSocketService;
 import com.backend.liargame.game.dto.NicknameRequest;
-import com.backend.liargame.game.dto.VoteRequest;
+import com.backend.liargame.game.service.GameService;
 import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
@@ -13,28 +12,27 @@ import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.handler.annotation.SendTo;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 import org.springframework.web.util.HtmlUtils;
 
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.stream.Collectors;
 
 
 @Slf4j
 @Controller
 public class RoomController {
 
-    private final WebSocketService webSocketService;
-    public RoomController(WebSocketService webSocketService) {
-        this.webSocketService = webSocketService;
+    private final GameService gameService;
+    public RoomController(GameService gameService) {
+        this.gameService = gameService;
     }
 
     @GetMapping("/room/create")
@@ -100,7 +98,7 @@ public class RoomController {
 
     @GetMapping("/room/{roomCode}/playerCount")
     public ResponseEntity<Integer> getPlayerCount(@PathVariable String roomCode) {
-        int playerCount = webSocketService.getPlayerCount(roomCode);
+        int playerCount = gameService.getPlayerCount(roomCode);
         log.info(roomCode + "에 연결된 사용자 -> " + playerCount);
         return ResponseEntity.ok(playerCount);
     }
@@ -115,14 +113,14 @@ public class RoomController {
 
     @PostMapping("/room/checkNickname")
     public ResponseEntity<Boolean> checkNickname(@RequestBody NicknameRequest nicknameRequest) {
-        boolean isNicknameTaken = webSocketService.isNicknameTaken(nicknameRequest.roomCode(), nicknameRequest.nickname());
+        boolean isNicknameTaken = gameService.isNicknameTaken(nicknameRequest.roomCode(), nicknameRequest.nickname());
         return ResponseEntity.ok(isNicknameTaken);
     }
 
     @MessageMapping("/room/{roomCode}/join")
     public void joinRoom(@DestinationVariable String roomCode, @Payload Map<String, String> payload) {
         String nickname = payload.get("nickname");
-        webSocketService.addPlayer(roomCode, nickname);
+        gameService.addPlayer(roomCode, nickname);
     }
 
     @MessageMapping("/room/{roomCode}/chat")
@@ -134,7 +132,7 @@ public class RoomController {
     @MessageMapping("/room/{roomCode}/leave")
     public void leaveRoom(@DestinationVariable String roomCode, Map<String, String> payload) {
         String nickname = HtmlUtils.htmlEscape(payload.get("nickname"));
-        webSocketService.removePlayer(roomCode, nickname);
+        gameService.removePlayer(roomCode, nickname);
     }
 
 
@@ -150,7 +148,7 @@ public class RoomController {
         log.info("nickname : " + nickname);
         log.info("sessionId : " + sessionId);
         if (roomCode != null && nickname != null) {
-            webSocketService.removePlayer(roomCode, nickname);
+            gameService.removePlayer(roomCode, nickname);
         }
     }
 }

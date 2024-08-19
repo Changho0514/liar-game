@@ -146,6 +146,7 @@ function connect(nickname) {
             // updatePlayerBoxes(players); // 박스 그리기
             document.getElementById('game-content').innerHTML = gameMessage;
             document.getElementById('room-section').style.display = 'none';
+            document.getElementById('declaration-section').style.display = 'block';
 
             // 'hidden' 클래스를 제거하고 'active' 클래스를 추가
             const gameSection = document.getElementById('game-section');
@@ -187,8 +188,6 @@ function connect(nickname) {
             // console.log('Received timer message:', message.body); // 추가된 로그
             try {
                 const timerMessage = JSON.parse(message.body);
-                // console.log('timerMessage.timeLeft: ' + timerMessage.timeLeft);
-                // console.log('timerMessage.currentPlayer: ' + timerMessage.currentPlayer);
                 updateTimer(timerMessage.timeLeft, timerMessage.currentPlayer);
             } catch (e) {
                 console.error('Error parsing timer message:', e, message.body);
@@ -249,7 +248,11 @@ function updatePlayerList(players) {
 function showMessage(message) {
     const messages = document.getElementById('messages');
     const messageElement = document.createElement('div');
-    messageElement.appendChild(document.createTextNode(message.name + ": " + message.content));
+    messageElement.classList.add('message-item');
+    messageElement.innerHTML = `
+        <span class="player-name"> ` + message.name + ` : </span>
+        <span class="message-text"> ` + message.content + ` </span>
+    `
     messages.appendChild(messageElement);
     messages.scrollTop = messages.scrollHeight; // 채팅 입력시 맨 아래로 이동
 }
@@ -331,7 +334,7 @@ var currentUser = sessionStorage.getItem('nickname');
 function updateTurnUI(currentTurnPlayer) {
 
     const turnMessage = document.getElementById('current-turn-message');
-    turnMessage.innerText = `${currentTurnPlayer} 님이 발언할 차례입니다`;
+    turnMessage.innerHTML = `<span class="highlight">${currentTurnPlayer}</span> 님이 발언할 차례입니다`
 
     const declarationField = document.getElementById('declarationField');
     const submitButton = document.getElementById('submit-button'); //
@@ -340,10 +343,12 @@ function updateTurnUI(currentTurnPlayer) {
         // 현재 턴이 자신의 턴일 때 제출 입력 필드 활성화 및 제출 버튼 활성화
         declarationField.disabled = false;
         submitButton.disabled = false;
+        declarationField.placeholder = "지금 발언하세요!"
         // console.log('declaration-section을 보여줍니다.');
     } else {
         // 현재 턴이 자신의 턴이 아닐 때 제출 버튼만 비활성화
         declarationField.disabled = true;
+        declarationField.placeholder = "다른 사람의 발언 턴입니다!"
         submitButton.disabled = true;
         // console.log('declaration-section을 숨깁니다.');
     }
@@ -494,7 +499,7 @@ function showLiarGuessPrompt() {
     // 라이어가 제시어를 맞추는 시간을 15초로 설정합니다.
     setTimeout(() => {
         document.getElementById('liar-guess-prompt').style.display = 'none';
-    }, 15000);
+    }, 30000);
 }
 
 

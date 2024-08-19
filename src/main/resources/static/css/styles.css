@@ -220,6 +220,28 @@ button:hover {
     white-space: normal; /* 자동 줄바꿈 허용 */
 }
 
+.message-item {
+    background-color: #f0f0f0; /* 메시지 박스 배경색 */
+    padding: 8px;
+    border-radius: 5px;
+    margin-bottom: 10px; /* 메시지 간의 간격 */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* 메시지 박스의 그림자 */
+}
+
+/* 플레이어 이름 스타일 */
+.message-item .player-name {
+    font-weight: bold; /* 굵은 글씨 */
+    color: #4A90E2; /* 플레이어 이름을 하늘색으로 강조 */
+    margin-bottom: 5px;
+    display: block;
+}
+
+/* 메시지 텍스트 스타일 */
+.message-item .message-text {
+    font-size: 1em;
+    color: #333333; /* 텍스트 색상 */
+}
+
 /* 발언 섹션 스타일 */
 #declaration-section {
     padding: 10px;
@@ -330,7 +352,7 @@ button:hover {
 }
 
 #declarationField:disabled {
-    background-color: #EFEFEF; /* 밝은 회색 배경색 */
+    background-color: #444444; /* 밝은 회색 배경색 */
     border-color: #D3D3D3; /* 옅은 회색 테두리 */
     color: #8C8C8C; /* 회색 글자색 */
     cursor: not-allowed; /* 금지된 커서 모양 */
@@ -477,4 +499,20 @@ button:hover {
 
 #vote-modal-text, #vote-confirm-modal-text {
     font-size: 1.4rem;
+}
+
+/* 발언 칸 반짝이게 만들기 */
+@keyframes blink {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0;
+    }
+}
+
+.highlight {
+    font-weight: bold;
+    color: #FF6F61; /* 코랄색 */
+    animation: blink 1s infinite; /* 1초마다 반짝이며 반복 */
 }
