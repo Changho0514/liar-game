@@ -337,7 +337,11 @@ var currentUser = sessionStorage.getItem('nickname');
 function updateTurnUI(currentTurnPlayer) {
 
     const turnMessage = document.getElementById('current-turn-message');
-    turnMessage.innerHTML = `<span class="highlight">${currentTurnPlayer}</span> 님이 발언할 차례입니다`
+    if(currentTurnPlayer.toString() === "투표중입니다." || currentTurnPlayer.toString() === "게임 종료!"){
+        turnMessage.innerHTML = `<span class="highlight">${currentTurnPlayer}</span>`
+    } else {
+        turnMessage.innerHTML = `<span class="highlight">${currentTurnPlayer}</span> 님이 발언할 차례입니다`
+    }
 
     const declarationField = document.getElementById('declarationField');
     const submitButton = document.getElementById('submit-button'); //
@@ -359,7 +363,11 @@ function updateTurnUI(currentTurnPlayer) {
 
 function updateTimer(timeLeft, currentPlayer) {
     const timerElement = document.getElementById('turn-timer');
-    timerElement.innerText = `남은 시간: ${timeLeft}초`;
+    if(currentPlayer.toString() === "게임 종료!"){
+        timerElement.innerText = `${currentPlayer}`;
+    } else{
+        timerElement.innerText = `${timeLeft}초`;
+    }
     updateTurnUI(currentPlayer);
 }
 

@@ -240,6 +240,8 @@ public class GameService {
         messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/voteUpdate", voteResults.size());
 
         if (this.getPlayerCount(roomCode) / 2 < voteResults.size()) {
+            timeLeftMap.put(roomCode, 60);
+            currentTurnMap.put(roomCode, -1);
             messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/startVote", "");
         }
     }
@@ -290,18 +292,30 @@ public class GameService {
                 currentTurnMap.remove(roomCode);  // currentTurn 정보도 삭제
                 continue;
             }
+            int currentTurn = currentTurnMap.getOrDefault(roomCode, 0);
             if (timeLeft > 0) {
-                int currentTurn = currentTurnMap.getOrDefault(roomCode, 0);
-                if (!players.isEmpty() && currentTurn < players.size()) {
+
+                // 라이어 투표를 위한 투표중 이라면
+                if(currentTurn == -1){
+                    String currentPlayer = "투표중입니다.";
+                    TimerMessage timerMessage = new TimerMessage(timeLeft-1, currentPlayer);
+                    messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/timer", timerMessage);
+                    timeLeftMap.put(roomCode, timeLeft - 1);
+                } else if (!players.isEmpty() && currentTurn < players.size()) {
                     String currentPlayer = players.get(currentTurn);
-                    TimerMessage timerMessage = new TimerMessage(timeLeft, currentPlayer);
+                    TimerMessage timerMessage = new TimerMessage(timeLeft-1, currentPlayer);
                     messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/timer", timerMessage);
                     timeLeftMap.put(roomCode, timeLeft - 1);
                 } else {
                     nextPlayerTurn(roomCode);
                 }
             } else {
-                nextPlayerTurn(roomCode);
+                if (currentTurn != -1) {
+                    nextPlayerTurn(roomCode);
+                } else {
+                    TimerMessage timerMessage = new TimerMessage(0, "게임 종료!");
+                    messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/timer", timerMessage);
+                }
             }
         }
     }
@@ -347,6 +361,7 @@ public class GameService {
     public void startVote(String roomCode) {
         messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/votePrompt", "투표를 시행하겠습니까? 60초 뒤에는 자동으로 투표에 진입합니다.");
         timeLeftMap.put(roomCode, 60);
+        currentTurnMap.put(roomCode, -1);
         messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/timer", new TimerMessage(60, "vote"));
     }
 
