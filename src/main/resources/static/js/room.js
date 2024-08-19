@@ -12,6 +12,8 @@ let votes = {}; // 플레이어 투표 상태
 let declarations = {}; // 플레이어 발언 상태
 let voteStarted = false;  // 투표 시작 상태를 추적하는 변수
 let voteTimeoutId; // 전역 변수로 타이머 ID를 저장
+let liarVoteTimeout; //
+let lastVoteMessage = null; // 라이어 투표 결괄를 저장
 
 window.onload = function() {
     if (!nickname) {
@@ -180,6 +182,7 @@ function connect(nickname) {
 
         // 라이어 투표 결과
         stompClient.subscribe('/topic/room/' + roomCode + '/voteResult', function (message) {
+            lastVoteMessage = message.body;
             liarVoteResults(message.body);
         });
 
@@ -382,6 +385,37 @@ function fetchPlayersAndCreateVoteButtons(roomCode) {
                 button.onclick = () => showVoteConfirmationModal(player);
                 voteButtonsDiv.appendChild(button);
             });
+
+            // 60초 타이머 설정 - 60초 후에 liarVoteResults 호출
+            setTimeout(() => {
+                // `liarVoteResults` 함수가 message.body 데이터를 필요로 하므로
+                // `lastVoteMessage` 또는 최신 메시지를 인자로 전달
+                const voteModal = document.getElementById('vote-modal');
+                if (lastVoteMessage) {
+                    closeModal(voteModal);
+                    liarVoteResults(lastVoteMessage);
+                } else {
+                // lastVoteMessage가 없을 경우 기본값으로 결과 생성
+                const defaultVoteResult = {
+                    voteResult: {}, // 빈 객체
+                    mostVotedPlayers: [], // 빈 배열
+                    liar: '', // 나중에 서버에서 가져옴
+                    liarWon: true // 기본값으로 true 설정
+                };
+
+                // 서버에서 liar 정보를 가져오기 위한 fetch 호출
+                fetch(`/api/game/liar-nickname/${roomCode}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        closeModal(voteModal);
+                        defaultVoteResult.liar = data.nickname; // 서버에서 liar 정보 설정
+                        liarVoteResults(JSON.stringify(defaultVoteResult)); // 결과 표시
+                    })
+                    .catch(error => {
+                        console.error('Error fetching liar:', error);
+                    });
+            }
+            }, 60000); // 60초 = 60000 밀리초
         })
         .catch(error => {
             console.error('Error fetching players:', error);
@@ -436,6 +470,8 @@ function showVoteConfirmationModal(player) {
     } else {
         console.error('버튼 요소를 찾을 수 없습니다.');
     }
+    // 60초 타이머 설정
+
 }
 
 
@@ -563,8 +599,10 @@ function liarVoteResults(message){
     const mostVotedMessage = document.createElement("p");
     if (mostVotedPlayers.length > 1) {
         mostVotedMessage.innerHTML = `최다 득표자는 <strong>${mostVotedPlayers.join(", ")}</strong> 입니다.`;
-    } else {
+    } else if(mostVotedPlayers.length === 1){
         mostVotedMessage.innerHTML = `최다 득표자는 <strong>${mostVotedPlayers[0]}</strong> 입니다.`;
+    } else {
+        mostVotedMessage.innerHTML = `최다 득표자는 없습니다.`;
     }
     voteResult.appendChild(mostVotedMessage);
 
@@ -580,7 +618,6 @@ function liarVoteResults(message){
         const secondChanceMessage = document.createElement("p");
         secondChanceMessage.innerHTML = `<span style="color: red;">라이어에게 한번 더 기회가 주어집니다.</span>`;
         voteResult.appendChild(secondChanceMessage);
-
 
         showLiarOptions();
     }
