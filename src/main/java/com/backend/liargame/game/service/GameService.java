@@ -240,6 +240,8 @@ public class GameService {
         messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/voteUpdate", voteResults.size());
 
         if (this.getPlayerCount(roomCode) / 2 < voteResults.size()) {
+            timeLeftMap.put(roomCode, 60);
+            currentTurnMap.put(roomCode, -1);
             messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/startVote", "");
         }
     }
@@ -269,14 +271,9 @@ public class GameService {
             turnCounterMap.put(roomCode, turnCounter);
         }
 
-        // 턴을 다음 플레이어로 넘김
-        currentTurn = (currentTurn + 1) % players.size();
-        currentTurnMap.put(roomCode, currentTurn);
-        timeLeftMap.put(roomCode, TURN_TIME); // 남은 시간 초기화
 
-        String nextPlayer = players.get(currentTurn);
-        messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/turnUpdate", nextPlayer);
-        messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/timer", new TimerMessage(TURN_TIME, nextPlayer)); // 초기화된 타이머 브로드캐스트
+        // 턴을 다음 플레이어로 넘김
+        nextPlayerTurn(roomCode);
     }
 
     /*
@@ -295,18 +292,30 @@ public class GameService {
                 currentTurnMap.remove(roomCode);  // currentTurn 정보도 삭제
                 continue;
             }
+            int currentTurn = currentTurnMap.getOrDefault(roomCode, 0);
             if (timeLeft > 0) {
-                int currentTurn = currentTurnMap.getOrDefault(roomCode, 0);
-                if (!players.isEmpty() && currentTurn < players.size()) {
+
+                // 라이어 투표를 위한 투표중 이라면
+                if(currentTurn == -1){
+                    String currentPlayer = "투표중입니다.";
+                    TimerMessage timerMessage = new TimerMessage(timeLeft-1, currentPlayer);
+                    messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/timer", timerMessage);
+                    timeLeftMap.put(roomCode, timeLeft - 1);
+                } else if (!players.isEmpty() && currentTurn < players.size()) {
                     String currentPlayer = players.get(currentTurn);
-                    TimerMessage timerMessage = new TimerMessage(timeLeft, currentPlayer);
+                    TimerMessage timerMessage = new TimerMessage(timeLeft-1, currentPlayer);
                     messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/timer", timerMessage);
                     timeLeftMap.put(roomCode, timeLeft - 1);
                 } else {
                     nextPlayerTurn(roomCode);
                 }
             } else {
-                nextPlayerTurn(roomCode);
+                if (currentTurn != -1) {
+                    nextPlayerTurn(roomCode);
+                } else {
+                    TimerMessage timerMessage = new TimerMessage(0, "게임 종료!");
+                    messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/timer", timerMessage);
+                }
             }
         }
     }
@@ -318,11 +327,30 @@ public class GameService {
             return;
         }
         int currentTurn = currentTurnMap.getOrDefault(roomCode, 0);
-        currentTurn = (currentTurn + 1) % players.size();
+
+        boolean alreadyHaveDeclared = false;
+        while(!alreadyHaveDeclared){
+            currentTurn = (currentTurn + 1) % players.size();
+            String currentPlayer = players.get(currentTurn);
+
+            Map<String, String> roomDeclarations = declarations.getOrDefault(roomCode, new ConcurrentHashMap<>());
+            log.info("currentPlayer : {}", currentPlayer);
+            log.info("declarations.get(roomCode).containsKey(currentPlayer) : {}", roomDeclarations.containsKey(currentPlayer));
+            // 현재 플레이어가 발언하지 않았다면 루프 종료
+            if(!roomDeclarations.containsKey(currentPlayer)) {
+                alreadyHaveDeclared = true;
+            }
+
+            // 모든 플레이어가 이미 발언한 경우, 루프 종료
+            if (roomDeclarations.size() >= players.size()) {
+                break;
+            }
+        }
         currentTurnMap.put(roomCode, currentTurn);
         timeLeftMap.put(roomCode, TURN_TIME);
 
         String nextPlayer = players.get(currentTurn);
+        log.info("while루프 이후 : {}", nextPlayer);
         messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/turnUpdate", nextPlayer);
 
         TimerMessage timerMessage = new TimerMessage(TURN_TIME, nextPlayer);
@@ -333,12 +361,10 @@ public class GameService {
     public void startVote(String roomCode) {
         messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/votePrompt", "투표를 시행하겠습니까? 60초 뒤에는 자동으로 투표에 진입합니다.");
         timeLeftMap.put(roomCode, 60);
+        currentTurnMap.put(roomCode, -1);
         messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/timer", new TimerMessage(60, "vote"));
     }
 
-    private void finalizeGame(String roomCode, boolean liarWon) {
-        messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/gameEnd", liarWon ? "라이어가 승리했습니다!" : "라이어가 패배했습니다!");
-    }
 
     public LiarOptionResponseDto liarOptions(String roomCode) {
         CopyOnWriteArrayList<String> players = this.getPlayers(roomCode);
@@ -383,6 +409,12 @@ public class GameService {
         }
 
         messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/gameEnd", "게임이 종료되었습니다.");
+    }
+
+    public String getLiarNickName(String roomCode){
+        Integer liarIndex = getLiarIndex(roomCode);
+        CopyOnWriteArrayList<String> players = roomPlayers.getOrDefault(roomCode, new CopyOnWriteArrayList<>());
+        return players.get(liarIndex);
     }
 
 

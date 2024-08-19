@@ -101,4 +101,9 @@ public class GameController {
             return ResponseEntity.notFound().build();
         }
     }
+
+    @GetMapping("/liar-nickname/{roomCode}")
+    public ResponseEntity<LiarNicknameResponseDto> getLiarNickName(@PathVariable String roomCode){
+        return ResponseEntity.ok(new LiarNicknameResponseDto(gameService.getLiarNickName(roomCode)));
+    }
 }
