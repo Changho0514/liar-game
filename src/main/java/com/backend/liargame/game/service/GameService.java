@@ -269,14 +269,9 @@ public class GameService {
             turnCounterMap.put(roomCode, turnCounter);
         }
 
-        // 턴을 다음 플레이어로 넘김
-        currentTurn = (currentTurn + 1) % players.size();
-        currentTurnMap.put(roomCode, currentTurn);
-        timeLeftMap.put(roomCode, TURN_TIME); // 남은 시간 초기화
 
-        String nextPlayer = players.get(currentTurn);
-        messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/turnUpdate", nextPlayer);
-        messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/timer", new TimerMessage(TURN_TIME, nextPlayer)); // 초기화된 타이머 브로드캐스트
+        // 턴을 다음 플레이어로 넘김
+        nextPlayerTurn(roomCode);
     }
 
     /*
@@ -318,11 +313,30 @@ public class GameService {
             return;
         }
         int currentTurn = currentTurnMap.getOrDefault(roomCode, 0);
-        currentTurn = (currentTurn + 1) % players.size();
+
+        boolean alreadyHaveDeclared = false;
+        while(!alreadyHaveDeclared){
+            currentTurn = (currentTurn + 1) % players.size();
+            String currentPlayer = players.get(currentTurn);
+
+            Map<String, String> roomDeclarations = declarations.getOrDefault(roomCode, new ConcurrentHashMap<>());
+            log.info("currentPlayer : {}", currentPlayer);
+            log.info("declarations.get(roomCode).containsKey(currentPlayer) : {}", roomDeclarations.containsKey(currentPlayer));
+            // 현재 플레이어가 발언하지 않았다면 루프 종료
+            if(!roomDeclarations.containsKey(currentPlayer)) {
+                alreadyHaveDeclared = true;
+            }
+
+            // 모든 플레이어가 이미 발언한 경우, 루프 종료
+            if (roomDeclarations.size() >= players.size()) {
+                break;
+            }
+        }
         currentTurnMap.put(roomCode, currentTurn);
         timeLeftMap.put(roomCode, TURN_TIME);
 
         String nextPlayer = players.get(currentTurn);
+        log.info("while루프 이후 : {}", nextPlayer);
         messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/turnUpdate", nextPlayer);
 
         TimerMessage timerMessage = new TimerMessage(TURN_TIME, nextPlayer);
@@ -336,9 +350,6 @@ public class GameService {
         messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/timer", new TimerMessage(60, "vote"));
     }
 
-    private void finalizeGame(String roomCode, boolean liarWon) {
-        messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/gameEnd", liarWon ? "라이어가 승리했습니다!" : "라이어가 패배했습니다!");
-    }
 
     public LiarOptionResponseDto liarOptions(String roomCode) {
         CopyOnWriteArrayList<String> players = this.getPlayers(roomCode);
@@ -383,6 +394,12 @@ public class GameService {
         }
 
         messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/gameEnd", "게임이 종료되었습니다.");
+    }
+
+    public String getLiarNickName(String roomCode){
+        Integer liarIndex = getLiarIndex(roomCode);
+        CopyOnWriteArrayList<String> players = roomPlayers.getOrDefault(roomCode, new CopyOnWriteArrayList<>());
+        return players.get(liarIndex);
     }
 
 
