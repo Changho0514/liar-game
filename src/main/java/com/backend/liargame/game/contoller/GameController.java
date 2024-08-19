@@ -1,6 +1,5 @@
 package com.backend.liargame.game.contoller;
 
-import com.backend.liargame.common.service.WebSocketService;
 import com.backend.liargame.game.dto.*;
 import com.backend.liargame.game.entity.GameStatus;
 import com.backend.liargame.game.service.GameService;
@@ -20,11 +19,9 @@ import java.util.Map;
 @RequestMapping("/api/game")
 public class GameController {
     private final GameService gameService;
-    private final WebSocketService webSocketService;
 
-    public GameController(GameService gameService, WebSocketService webSocketService) {
+    public GameController(GameService gameService) {
         this.gameService = gameService;
-        this.webSocketService = webSocketService;
     }
 
     @PostMapping("/start/{roomCode}")
@@ -69,7 +66,8 @@ public class GameController {
 
     @GetMapping("/players/{roomCode}")
     public ResponseEntity<List<String>> getPlayers(@PathVariable String roomCode) {
-        List<String> players = webSocketService.getPlayers(roomCode);
+        List<String> players = gameService.getPlayers(roomCode);
+
         if (players != null) {
             return ResponseEntity.ok(players);
         } else {
