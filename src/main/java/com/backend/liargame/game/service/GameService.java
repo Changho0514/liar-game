@@ -72,11 +72,14 @@ public class GameService {
 
     // 플레이어 제거
     public void removePlayer(String roomCode, String nickname) {
-        CopyOnWriteArrayList<String> players = roomPlayers.get(roomCode);
-        if (players != null) {
+        CopyOnWriteArrayList<String> players = roomPlayers.getOrDefault(roomCode, new CopyOnWriteArrayList<>());
+        CopyOnWriteArrayList<String> waiters = lateJoiners.getOrDefault(roomCode, new CopyOnWriteArrayList<>());
+        if (players.contains(nickname)) {
             players.remove(nickname);
-            messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/players", players);
+        } else if(waiters.contains(nickname)){
+            waiters.remove(nickname);
         }
+        messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/players", players);
     }
 
     public int getPlayerCount(String roomCode) {
@@ -94,7 +97,8 @@ public class GameService {
 
     public boolean isNicknameTaken(String roomCode, String nickname) {
         CopyOnWriteArrayList<String> players = roomPlayers.getOrDefault(roomCode, new CopyOnWriteArrayList<>());
-        return players.contains(nickname);
+        CopyOnWriteArrayList<String> waiters = lateJoiners.getOrDefault(roomCode, new CopyOnWriteArrayList<>());
+        return players.contains(nickname) || waiters.contains(nickname);
     }
 
     public Integer getLiarIndex(String roomCode) {
