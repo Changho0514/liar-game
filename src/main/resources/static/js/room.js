@@ -243,7 +243,6 @@ function updatePlayerList(players) {
         var playerElement = document.createElement('div');
         playerElement.className = 'player-box'; //클래스 추가
         playerElement.appendChild(document.createTextNode(player));
-        playerElement.onclick = function() { openVoteModal(player); };
         playerList.appendChild(playerElement);
     });
 }
